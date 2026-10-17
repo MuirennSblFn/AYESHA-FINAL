@@ -5,6 +5,9 @@
 --  Prix en centimes (90000 = 900,00 €). Tout reste modifiable depuis l'onglet Catalogue.
 -- =====================================================================
 
+-- Sécurité : crée la colonne « emplacement » si schema.sql n'a pas encore été relancé
+alter table public.items add column if not exists emplacement text not null default '';
+
 -- Uniforme des Gris (réglementaire)
 insert into public.items (nom, categorie, prix, reduction, malus, emplacement, effets, description) select 'Bure grise doublée de mailles', 'armure', 350000, '3', '-5', 'corps_dessus', 'Uniforme réglementaire. Capuche. Se porte avec le chapel de fer. Tout initié reconnaît un Gris à sa bure.', 'Bure de moine en laine grise, doublée d’une cotte de mailles rivetées. Lourde, chaude, rassurante.' where not exists (select 1 from public.items where nom = 'Bure grise doublée de mailles');
 insert into public.items (nom, categorie, prix, reduction, malus, emplacement, effets, description) select 'Chapel de fer', 'armure', 90000, '1', '', 'tete', 'Réglementaire. Se cumule avec une armure de corps. Le large bord protège des coups venus d’en haut (chutes, créatures volantes) : réduction 3 contre eux.', 'Casque de fer à large bord, dit « kettle hat ». Se porte sur la capuche de la bure.' where not exists (select 1 from public.items where nom = 'Chapel de fer');

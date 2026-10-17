@@ -14,7 +14,21 @@
 <link rel="stylesheet" href="css/fiche.css">
 <link rel="stylesheet" href="css/armurerie.css">
 <script src="vendor/supabase-2.99.3.js"></script>
-<script type="module" src="js/main.js"></script>
+<script>
+  /* Si le code du site ne démarre pas (fichier manquant ou pas à jour), le dire au lieu de rester sur « Ouverture… » */
+  function ayeshaEchec(detail) {
+    if (window.__ayeshaPret) return;
+    var v = document.getElementById('view'); if (!v) return;
+    v.innerHTML = '<div class="panel center"><h2>Le site n\u2019a pas pu démarrer</h2>'
+      + '<p>Un fichier du site est manquant, mal placé ou pas à jour sur GitHub.</p>'
+      + (detail ? '<p class="hint">' + String(detail).replace(/[<&]/g, function (c) { return c === '<' ? '&lt;' : '&amp;'; }) + '</p>' : '')
+      + '<p class="hint">Plus de détails : touche F12, onglet « Console ».</p>'
+      + '<button class="btn" onclick="location.reload()">Recharger</button></div>';
+  }
+  window.addEventListener('error', function (e) { ayeshaEchec(e.message); });
+  setTimeout(function () { ayeshaEchec(''); }, 20000);
+</script>
+<script type="module" src="js/main.js" onerror="ayeshaEchec('Impossible de charger js/main.js ou un des fichiers qu\u2019il utilise.')"></script>
 </head>
 <body>
 <div class="app">

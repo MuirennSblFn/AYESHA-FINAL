@@ -5,6 +5,9 @@
 --  Prix en centimes (8000 = 80,00 €). Tout reste modifiable depuis l'onglet Catalogue.
 -- =====================================================================
 
+-- Sécurité : crée la colonne « emplacement » si schema.sql n'a pas encore été relancé
+alter table public.items add column if not exists emplacement text not null default '';
+
 -- Mêlée médiévale
 insert into public.items (nom, categorie, prix, stat, degats, emplacement, effets, description) select 'Couteau de chasse', 'arme', 3500, 'DEX', '1d4', 'main', 'Facile à dissimuler.', 'Lame fixe, manche en corne. Le premier outil de tout Gris.' where not exists (select 1 from public.items where nom = 'Couteau de chasse');
 insert into public.items (nom, categorie, prix, stat, degats, emplacement, effets, description) select 'Dague', 'arme', 8000, 'DEX', '1d6', 'main', 'Peut être lancée (10 m).', 'Lame à double tranchant, équilibrée pour le lancer.' where not exists (select 1 from public.items where nom = 'Dague');
