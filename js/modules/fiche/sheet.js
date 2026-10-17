@@ -10,14 +10,16 @@
    Tout ce qui est calculé par les règles peut aussi être saisi à la main
    (caractéristiques, chance, maximums de PV / PM / SM, valeurs actuelles).
    ===================================================================== */
-import { $, $$, esc, toast, modal, confirmer } from '../../core/ui.js';
-import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6, EMPLACEMENTS, EMPL_PAR_TYPE, CASES, TYPES_OBJET } from '../../shared/regles.js';
+import { $, $$, esc, toast, modal, confirmer, copyText } from '../../core/ui.js';
+import { lexique, chercher } from '../../shared/lexique.js';
+import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6, EMPLACEMENTS, EMPL_PAR_TYPE, CASES, TYPES_OBJET, CATEGORIES_MOT, GRAMMAIRE, incantation } from '../../shared/regles.js';
 import { occupant, sacoche, estEquipable, equiper, ranger, utiliser, reductionPortee, malusPorte, nouvelId } from '../../shared/equipement.js';
 import { int, compte, niveau, malusArmure, bonusDegats, maxCalcules, maxEffectifs, actuel, formule } from '../../shared/personnage.js';
 
 export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} } = {}) {
   let reading = lectureSeule;
-  let spellPick = new Set();
+  let seq = [];                 // mots du sort en cours de composition
+  let LEX = null, lexQ = '';     // lexique de l'ancien langage (chargé à la demande)
   const q = s => $(s, root), qq = s => $$(s, root);
   const persist = () => { if (!lectureSeule) onChange(C); };
 
@@ -166,12 +168,25 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     if (!C.classe) return '<p class="none">Choisissez la voie de pratique de la magie. Beaucoup de points de magie : Magicien. Une santé de fer : Sorcier. De la chance : Devin ou Portesac.</p>';
     const k = C.classe;
     if (k === 'magicien') {
-      const rows = C.mots.map((m, i) => `<tr><td><input class="in" id="f-mot-${i}" data-k="mots.${i}.mot" value="${esc(m.mot)}" placeholder="Tilhgar" aria-label="Mot" style="font-family:var(--f-fell);font-size:1.05rem"></td><td><input class="in" id="f-sens-${i}" data-k="mots.${i}.sens" value="${esc(m.sens)}" placeholder="lancer" aria-label="Sens"></td><td class="num" data-motbonus="${i}" style="width:4.5em"></td><td class="edit-only" style="width:30px"><button class="x" data-del="mots.${i}" aria-label="Retirer">×</button></td></tr>`).join('');
+      const natures = (v, i) => `<select class="sel" id="f-motcat-${i}" data-k="mots.${i}.cat" data-spell="1" aria-label="Nature du mot"><option value="">—</option>${['verbe', 'nom', 'adjectif'].map(c => `<option value="${c}" ${v === c ? 'selected' : ''}>${CATEGORIES_MOT[c]}</option>`).join('')}</select>`;
+      const rows = C.mots.map((m, i) => `<tr><td><input class="in" id="f-mot-${i}" data-k="mots.${i}.mot" value="${esc(m.mot)}" placeholder="Tilglhar" aria-label="Mot" style="font-family:var(--f-fell);font-size:1.05rem"></td><td><input class="in" id="f-sens-${i}" data-k="mots.${i}.sens" value="${esc(m.sens)}" placeholder="lancer" aria-label="Sens"></td><td style="width:10em">${natures(m.cat || '', i)}</td><td class="num" data-motbonus="${i}" style="width:4em"></td><td class="edit-only" style="width:30px"><button class="x" data-del="mots.${i}" aria-label="Retirer">×</button></td></tr>`).join('');
       return `<div class="chips" id="cls-chips"></div>
-        <div class="scroll"><table class="gear"><thead><tr><th>Mot de l'ancien langage</th><th>Sens</th><th>Bonus</th><th class="edit-only"></th></tr></thead><tbody>${rows}</tbody></table></div>
-        <button class="add edit-only" data-addrow="mots">＋ Ajouter un mot</button>
+        <div class="scroll"><table class="gear mots"><thead><tr><th>Mot de l'ancien langage</th><th>Sens</th><th>Nature</th><th>Bonus</th><th class="edit-only"></th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="lexpick edit-only">
+          <span class="lbl">APPRENDRE UN MOT DU LEXIQUE</span>
+          <input class="search" id="lexq" type="search" value="${esc(lexQ)}" placeholder="Chercher un sens ou un mot : « flamme », « Lasair »…" autocomplete="off" aria-label="Chercher dans le lexique">
+          <div class="lexres" id="lexres"><span class="none">Chargement du lexique…</span></div>
+          <button class="add" data-addrow="mots">＋ Mot hors lexique</button>
+        </div>
         <p class="hint">Trois mots au départ, dont au moins un verbe ; évitez les adverbes.</p>
-        <div class="calc"><span class="lbl">COMPOSER UN SORT</span><div class="wordpick" id="wordpick"></div><div class="res" id="spellres"></div></div>
+        <div class="calc"><span class="lbl">COMPOSER UN SORT</span>
+          <p class="hint" style="margin:2px 0 8px">Cliquez sur les mots dans l'ordre de la formule : les liaisons de grammaire s'ajoutent toutes seules.</p>
+          <div class="wordpick" id="wordpick"></div>
+          <div class="seq" id="spellseq"></div>
+          <div class="res" id="spellres"></div>
+        </div>
+        <details class="ref"><summary>GRAMMAIRE DE L'ANCIEN LANGAGE</summary><table>${GRAMMAIRE.map(g => `<tr><td>${esc(g.r)}</td><td style="font-family:var(--f-fell);font-size:1.05rem">${esc(g.p)}</td></tr>`).join('')}</table>
+          <p class="hint">Pour une boule de feu : LANCER + FLAMME. Pour devenir invisible : DEVENIR + son nom + INVISIBLE. Plusieurs formulations sont possibles pour un même sort.</p></details>
         <details class="ref"><summary>BARÈME DES SORTS</summary><table><tr><th>Mots</th><th>Coût</th><th>Difficulté (1d20)</th><th></th></tr>${[1, 2, 3, 4, 5, 6].map(n => `<tr><td>${n}${n === 6 ? '+' : ''}</td><td>${COUT[n]} PM</td><td>${DIFF[n]}${n === 6 ? '+' : ''}</td><td>${DIFF_TXT[n]}</td></tr>`).join('')}</table></details>`;
     }
     if (k === 'devin') return `<div class="chips" id="cls-chips"></div>
@@ -207,16 +222,55 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     if (k === 'portesac') return chip('Duplication', compte(C, 'dupliquer') ? 'oui' : 'non') + chip('Tirages multiples', compte(C, 'tirages') ? 'oui' : 'non') + chip('Échanges', compte(C, 'echange')) + chip('Objets choisis', C.sac.filter(Boolean).length + ' / 12');
     return '';
   }
+  /* Lexique : recherche et apprentissage d'un mot en un clic */
+  function renderLex() {
+    const el = q('#lexres'); if (!el) return;
+    if (LEX === null) {
+      LEX = 'chargement';
+      lexique.lister().then(l => { LEX = l; renderLex(); }).catch(() => { LEX = false; renderLex(); });
+      return;
+    }
+    if (LEX === 'chargement') return;
+    if (LEX === false) { el.innerHTML = '<span class="none">Lexique indisponible pour le moment. Vous pouvez saisir un mot à la main.</span>'; return; }
+    const connus = new Set(C.mots.map(m => String(m.mot || '').trim().toLowerCase()).filter(Boolean));
+    const res = chercher(LEX, lexQ);
+    if (!res.length) { el.innerHTML = `<span class="none">${LEX.length ? 'Aucun mot ne correspond.' : 'Le lexique est vide : le MJ peut le remplir depuis la page Lexique.'}</span>`; return; }
+    el.innerHTML = ['verbe', 'nom', 'adjectif'].map(c => {
+      const l = res.filter(m => m.categorie === c); if (!l.length) return '';
+      return `<div class="lexgrp"><div class="lexh">${esc(CATEGORIES_MOT[c])}s <small>${l.length}</small></div><div class="lexchips">${l.map(m => {
+        const su = connus.has(m.ancien.trim().toLowerCase());
+        return `<button class="lexw${su ? ' su' : ''}" data-learn="${esc(m.id)}" ${su ? 'disabled title="Déjà connu"' : `title="Apprendre ${esc(m.ancien)} (${esc(m.fr)})"`}><b>${esc(m.ancien)}</b><span>${esc(m.fr)}</span></button>`;
+      }).join('')}</div></div>`;
+    }).join('');
+  }
+  function apprendre(id) {
+    const m = (Array.isArray(LEX) ? LEX : []).find(x => x.id === id); if (!m) return;
+    const mot = { mot: m.ancien, sens: m.fr, cat: m.categorie, lex: m.id };
+    const vide = C.mots.findIndex(x => !String(x.mot || '').trim() && !String(x.sens || '').trim());
+    if (vide >= 0) C.mots[vide] = mot; else C.mots.push(mot);
+    persist(); renderClass(); toast(`${m.ancien} (${m.fr}) appris`);
+    const qi = q('#lexq'); if (qi && lexQ) { qi.focus(); qi.setSelectionRange(lexQ.length, lexQ.length); }
+  }
+
+  /* Composition d'un sort : suite de mots dans l'ordre, incantation avec liaisons, coût */
   function renderSpell() {
     const wp = q('#wordpick'); if (!wp) return;
-    const words = C.mots.map(m => String(m.mot || '').trim()).filter(Boolean);
-    spellPick = new Set([...spellPick].filter(w => words.includes(w)));
-    wp.innerHTML = words.length ? words.map((w, i) => `<label><input type="checkbox" id="f-pick-${i}" data-pick="${esc(w)}" ${spellPick.has(w) ? 'checked' : ''}>${esc(w)}</label>`).join('') : '<span class="none">Ajoutez des mots pour composer un sort.</span>';
-    const n = spellPick.size;
-    if (!n) { q('#spellres').innerHTML = '<span>Cochez les mots du sort.</span>'; return; }
-    const m = Math.min(n, 6), maitrise = compte(C, 'maitrise'), spec = Math.max(0, ...[...spellPick].map(motBonus));
+    const mots = C.mots.map((m, i) => ({ ...m, i })).filter(m => String(m.mot || '').trim());
+    wp.innerHTML = (mots.length ? mots.map(m => `<button class="wchip c-${esc(m.cat || 'x')}" data-compose="${m.i}" title="${esc(m.sens || '')}${m.cat ? ' · ' + esc(CATEGORIES_MOT[m.cat]) : ''}"><b>${esc(m.mot)}</b>${m.sens ? `<span>${esc(m.sens)}</span>` : ''}</button>`).join('') : '<span class="none">Apprenez des mots pour composer un sort.</span>')
+      + `<span class="propre"><input class="in" id="propre" placeholder="Nom propre (cible)" aria-label="Nom propre"><button class="mini" data-propre="1">＋</button></span>`;
+    const sq = q('#spellseq'), res = q('#spellres');
+    if (!seq.length) { sq.innerHTML = ''; res.innerHTML = '<span>Cliquez sur les mots du sort, dans l’ordre.</span>'; return; }
+    const formule = incantation(seq.map(x => ({ ancien: x.mot, categorie: x.cat })));
+    sq.innerHTML = `<div class="seqchips">${seq.map((x, k) => `<span class="sq c-${esc(x.cat || 'x')}">${esc(x.mot)}<button data-unseq="${k}" aria-label="Retirer ${esc(x.mot)}">×</button></span>`).join('<span class="plus">+</span>')}<button class="linkbtn" data-clearseq="1">tout effacer</button></div>
+      <div class="incant"><span class="formule">« ${esc(formule)} »</span><button class="mini" data-copyincant="1">Copier</button></div>
+      <div class="sens">${seq.map(x => esc(x.cat === 'propre' ? x.mot : (x.sens || x.mot))).join(' + ')}</div>`;
+    sq.dataset.formule = formule;
+    const n = seq.filter(x => x.cat !== 'propre').length;
+    if (!n) { res.innerHTML = '<span>Ajoutez au moins un mot de l’ancien langage.</span>'; return; }
+    const m = Math.min(n, 6), maitrise = compte(C, 'maitrise'), spec = Math.max(0, ...seq.map(x => motBonus(x.mot)));
     const bonus = maitrise + spec, diff = DIFF[m], need = Math.max(1, diff - bonus + 1);
-    q('#spellres').innerHTML = `<span>Coût <b>${COUT[m]}${n > 6 ? '+' : ''} PM</b></span><span>Seuil <b>${diff}${n > 6 ? '+' : ''}</b></span><span>Bonus <b>+${bonus}</b></span><span>Dé à obtenir <b>${need > 20 ? 'impossible' : need + ' ou plus'}</b></span><span style="flex-basis:100%;font-family:var(--f-body);letter-spacing:0;font-style:italic">${DIFF_TXT[m]}</span>`;
+    const sansVerbe = seq.filter(x => x.cat !== 'propre').every(x => x.cat && x.cat !== 'verbe');
+    res.innerHTML = `<span>Coût <b>${COUT[m]}${n > 6 ? '+' : ''} PM</b></span><span>Seuil <b>${diff}${n > 6 ? '+' : ''}</b></span><span>Bonus <b>+${bonus}</b></span><span>Dé à obtenir <b>${need > 20 ? 'impossible' : need + ' ou plus'}</b></span><span style="flex-basis:100%;font-family:var(--f-body);letter-spacing:0;font-style:italic">${DIFF_TXT[m]}</span>${sansVerbe ? '<span class="warn" style="flex-basis:100%">Ce sort ne contient aucun verbe : il faut connaître le mot de l’action.</span>' : ''}`;
   }
   function renderClass() {
     q('#class-picker').innerHTML = classPicker();
@@ -227,7 +281,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   function renderClassComputed() {
     const ch = q('#cls-chips'); if (ch) ch.innerHTML = classChips();
     qq('[data-motbonus]').forEach(td => { const b = motBonus((C.mots[+td.dataset.motbonus] || {}).mot); td.textContent = b ? '+' + b : ''; });
-    renderSpell();
+    renderSpell(); renderLex();
     q('#lvl').textContent = niveau(C);
   }
   function renderDerived() {
@@ -326,7 +380,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       if (/^stats\./.test(t.dataset.k)) { const k = t.dataset.k.slice(6); delete C.rolls[k]; const d = q('[data-dice="' + k + '"]'); if (d) d.textContent = ''; }
       if (t.dataset.k === 'chance') { C.chanceRoll = null; }
       persist();
-      if (/^mots\./.test(t.dataset.k)) renderSpell();
+      if (/^mots\./.test(t.dataset.k)) { seq = seq.filter(x => x.cat === 'propre' || C.mots[x.i]); seq.forEach(x => { if (x.cat !== 'propre' && C.mots[x.i]) Object.assign(x, { mot: C.mots[x.i].mot, sens: C.mots[x.i].sens, cat: C.mots[x.i].cat || '' }); }); renderSpell(); }
       renderDerived();
     }
     if (t.dataset.pk) {
@@ -343,7 +397,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       const k = t.dataset.cur, v = int(t.value);
       if (t.value.trim() === '' || v != null) { C.cur[k] = v == null ? null : Math.max(0, v); persist(); renderGauges(); }
     }
-    if (t.dataset.pick !== undefined) { t.checked ? spellPick.add(t.dataset.pick) : spellPick.delete(t.dataset.pick); renderSpell(); }
+    if (t.id === 'lexq') { lexQ = t.value; renderLex(); }
   });
   root.addEventListener('change', e => {
     if (lectureSeule) return;
@@ -357,15 +411,25 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       if (o && t.dataset.pk.endsWith('.type') && !(EMPL_PAR_TYPE[o.type] || ['']).includes(o.empl)) { o.empl = (EMPL_PAR_TYPE[o.type] || [''])[0]; persist(); }
       renderEquip(); return;
     }
+    if (t.dataset.spell) { seq.forEach(x => { if (x.cat !== 'propre' && C.mots[x.i]) x.cat = C.mots[x.i].cat || ''; }); renderSpell(); }
     if (t.dataset.rerender) { renderClass(); renderDerived(); }
     if (t.dataset.sac !== undefined) { const i = +t.dataset.sac; C.sac[i] = t.value === '__autre' ? (C.sac[i] && !SAC[i].includes(C.sac[i]) ? C.sac[i] : 'Objet échangé') : t.value; persist(); renderClass(); if (t.value === '__autre') { const x = q('#f-sacx-' + i); x && x.select(); } }
     if (t.id === 'file-portrait' && t.files[0]) { setPortrait(t.files[0]); t.value = ''; }
+  });
+  root.addEventListener('keydown', e => {
+    if (e.target.id === 'propre' && e.key === 'Enter') { e.preventDefault(); const v = e.target.value.trim(); if (v) { seq.push({ mot: v, cat: 'propre' }); renderSpell(); } }
   });
   root.addEventListener('focusin', e => {
     if (e.target.getAttribute('list') === 'mots-list') q('#mots-list').innerHTML = C.mots.filter(m => String(m.mot || '').trim()).map(m => `<option value="${esc(m.mot.trim())}">`).join('');
   });
   root.addEventListener('click', async e => {
     const t = e.target.closest('button'); if (!t || lectureSeule || !root.contains(t)) return;
+    if (t.dataset.learn) { apprendre(t.dataset.learn); return; }
+    if (t.dataset.compose !== undefined) { const m = C.mots[+t.dataset.compose]; if (m) { seq.push({ i: +t.dataset.compose, mot: m.mot, sens: m.sens, cat: m.cat || '' }); renderSpell(); } return; }
+    if (t.dataset.propre) { const inp = q('#propre'); const v = inp && inp.value.trim(); if (v) { seq.push({ mot: v, cat: 'propre' }); renderSpell(); } else if (inp) inp.focus(); return; }
+    if (t.dataset.unseq !== undefined) { seq.splice(+t.dataset.unseq, 1); renderSpell(); return; }
+    if (t.dataset.clearseq) { seq = []; renderSpell(); return; }
+    if (t.dataset.copyincant) { const f = q('#spellseq')?.dataset.formule; if (f) copyText(f, 'Incantation copiée', 'Incantation'); return; }
     if (t.dataset.gauge) { C.cur[t.dataset.gauge] = +t.dataset.v; persist(); renderGauges(); return; }
     if (t.dataset.maxreset) { C.max[t.dataset.maxreset] = ''; persist(); renderGauges(); return; }
     if (t.dataset.ent !== undefined) { if (reading) return; C.entente[+t.dataset.ent].note = +t.dataset.v; persist(); q('#entente').innerHTML = ententeHTML(); q('#ent-avg').innerHTML = ententeAvg(); return; }
@@ -407,7 +471,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       C[k].push(row); persist(); renderClass(); renderDerived(); return;
     }
     if (t.dataset.del) {
-      const [k, i] = t.dataset.del.split('.'); C[k].splice(+i, 1); persist();
+      const [k, i] = t.dataset.del.split('.'); C[k].splice(+i, 1); if (k === 'mots') seq = []; persist();
       renderClass(); renderDerived(); return;
     }
     if (t.id === 'portrait') { if (!reading) q('#file-portrait').click(); return; }
@@ -429,7 +493,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   render();
   return {
     render,
-    setData(nv) { C = nv; spellPick = new Set(); render(); },
+    setData(nv) { C = nv; seq = []; render(); },
     lecture(on) { reading = lectureSeule || on; root.classList.toggle('reading', reading); },
     get data() { return C; },
   };

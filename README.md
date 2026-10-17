@@ -78,6 +78,12 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 - Les fiches enregistrées avant cette version sont converties à leur ouverture : armes et armure portées, objets dans l'inventaire.
 - Le solde est protégé : il n'est pas dans la fiche, seul le MJ peut l'alimenter, et la base refuse tout achat sans fonds suffisants. La fiche, elle, reste librement modifiable (un joueur peut toujours ajouter un objet à la main).
 
+**Lexique et magie** :
+- Page *Lexique* : tous les joueurs connectés consultent les mots de l'ancien langage (sens, nature) et la grammaire. Le MJ ajoute, modifie, masque ou supprime des mots ; un mot masqué reste secret.
+- Fiche du Magicien : un champ de recherche dans le lexique (par le sens ou par le mot ancien, sans se soucier des accents) ; un clic apprend le mot, avec son sens et sa nature. Un mot hors lexique peut toujours être saisi à la main.
+- *Composer un sort* : cliquer les mots dans l'ordre (et un nom propre si besoin) ; l'incantation s'écrit avec les liaisons (*nil*, *en*, *om*, *eht*), avec coût, seuil, bonus, alerte si le sort n'a pas de verbe, et bouton « Copier ».
+- Import initial : `supabase/lexique.sql` (148 mots de la feuille 3 du classeur), à lancer après `schema.sql`.
+
 **Sauvegarde** : automatique, en ligne. L'état est affiché au-dessus de la fiche. En cas de coupure, une copie reste sur l'appareil et l'envoi reprend tout seul. Si la fiche a été modifiée entre-temps depuis un autre appareil, le site demande quelle version garder.
 
 ---
@@ -91,14 +97,16 @@ css/base.css             couleurs, barre du haut, boutons, fenêtres, accueil
 css/grimoire.css         styles du module Grimoire
 css/fiche.css            styles de la fiche, de La table et de l'impression
 css/armurerie.css        styles de l'armurerie
+css/lexique.css          styles du lexique et des outils du Magicien
 js/config.js             adresse et clé publique Supabase
 js/core/                 socle : connexion (auth.js), routeur (router.js), outils (ui.js)
 js/shared/regles.js      règles d'Ayesha (caractéristiques, classes, sac, sorts…)
 js/shared/personnage.js  modèle du personnage, calculs, lecture et enregistrement en ligne
 js/shared/banque.js      comptes, achats, catalogue, format des euros, temps réel
 js/shared/equipement.js  inventaire, emplacements, équiper / ranger / utiliser, totaux
+js/shared/lexique.js     lexique de l'ancien langage (lecture, recherche, gestion MJ)
 js/modules/index.js      LISTE DES MODULES (c'est ici qu'on en ajoute)
-js/modules/*.js          accueil, grimoire, armurerie, table (MJ)
+js/modules/*.js          accueil, grimoire, lexique, armurerie, table (MJ)
 js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), index.js (page)
 supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), maintien en éveil
 vendor/                  bibliothèque Supabase (version figée, pas de dépendance à un CDN)

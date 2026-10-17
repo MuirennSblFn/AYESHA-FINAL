@@ -1,0 +1,81 @@
+/* =====================================================================
+   Lexique de l'ancien langage : page Lexique + outils du Magicien
+   ===================================================================== */
+.m-lexique{padding:20px 20px 80px;max-width:1140px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:0 26px;align-items:start}
+.lexhead{grid-column:1/-1;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.lexhead h2{font-family:var(--f-display);font-weight:400;font-size:2rem;margin:0;line-height:1.1}
+.lexhead p{margin:4px 0 0;color:var(--ink-soft)}
+.lexbar{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.lexbar .search,.lexpick .search{font:inherit;font-size:.95rem;padding:7px 10px;border:1px solid var(--rule);border-radius:3px;background:var(--page);color:var(--ink);width:min(320px,100%)}
+.lexbar .chips{display:flex;gap:6px;flex-wrap:wrap}
+.m-lexique .chip{font-family:var(--f-label);font-size:.74rem;letter-spacing:.06em;padding:3px 10px;border:1px solid var(--rule);border-radius:20px;background:transparent;font-weight:700;color:var(--ink-soft)}
+.m-lexique .chip[aria-pressed="true"]{background:var(--gilt-soft);border-color:var(--gilt);color:var(--ink)}
+.lexsec{margin-bottom:22px}
+.lexsec h3{font-family:var(--f-label);font-size:.78rem;letter-spacing:.16em;color:var(--gilt);margin:0 0 8px;font-weight:700;text-transform:uppercase}
+.lexsec h3 small{color:var(--ink-faint);margin-left:6px}
+.lexgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.lexcard{background:var(--page);border:1px solid var(--rule);padding:9px 11px;display:flex;flex-direction:column;gap:1px}
+.lexcard .an{font-family:var(--f-fell);font-size:1.18rem;line-height:1.15}
+.lexcard .fr{font-size:.9rem;color:var(--ink-soft);font-style:italic}
+.lexcard .nt{font-size:.8rem;color:var(--ink-faint);margin-top:2px}
+.lexcard.masque{opacity:.55;border-style:dashed}
+.lexcard .mjact{display:flex;gap:8px;align-items:center;margin-top:6px}
+.lexcard .mjact .x{margin-left:auto;border:0;background:transparent;color:var(--ink-faint);font-size:1.1rem;width:26px;height:26px}
+.lexcard .mjact .x:hover{color:var(--sang)}
+.gram{position:sticky;top:calc(var(--head) + 14px);background:var(--page);border:1px solid var(--rule);padding:14px 16px;font-size:.9rem}
+.gram h3{font-family:var(--f-fell);font-weight:400;font-size:1.25rem;margin:0 0 6px}
+.gram table{border-collapse:collapse;width:100%;margin-bottom:8px}
+.gram td{padding:4px 0;border-bottom:1px dotted var(--rule);vertical-align:top}
+.gram td.p{font-family:var(--f-fell);font-size:1.1rem;text-align:right;white-space:nowrap;padding-left:8px;color:var(--gilt)}
+.gram p{color:var(--ink-soft);margin:6px 0 0}
+.m-lexique .itemform{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.m-lexique .itemform label,.modal .itemform label{display:flex;flex-direction:column;gap:3px}
+.modal #lexform{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.modal #lexform .w2{grid-column:1/-1}
+.modal #lexform .check{flex-direction:row;align-items:center;gap:8px}
+.modal #lexform .in{font:inherit;color:var(--ink);background:var(--page-2);border:1px solid var(--rule);border-radius:2px;padding:6px 8px;width:100%}
+.modal #lexform .lbl{font-family:var(--f-label);font-size:.7rem;letter-spacing:.12em;color:var(--ink-soft);font-weight:700}
+.modal #lexform .err{color:var(--sang);font-size:.9rem}
+@media (max-width:860px){
+  .m-lexique{grid-template-columns:1fr;padding:12px 12px 60px}
+  .gram{position:static;margin-top:10px}
+  .modal #lexform{grid-template-columns:1fr}
+}
+
+/* --- Fiche du Magicien : apprendre un mot, composer un sort --- */
+.fichewrap .lexpick{margin:12px 0 4px;border:1px dashed var(--rule);padding:10px 12px}
+.fichewrap .lexpick .search{display:block;margin:6px 0 8px;width:min(420px,100%)}
+.fichewrap .lexres{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+.fichewrap .lexh{font-family:var(--f-label);font-size:.68rem;letter-spacing:.14em;color:var(--gilt);font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.fichewrap .lexh small{color:var(--ink-faint)}
+.fichewrap .lexchips{display:flex;flex-wrap:wrap;gap:4px}
+.fichewrap .lexw{display:inline-flex;align-items:baseline;gap:6px;border:1px solid var(--rule);background:var(--page);padding:2px 9px;border-radius:2px;font-size:.88rem}
+.fichewrap .lexw b{font-family:var(--f-fell);font-weight:400;font-size:1rem}
+.fichewrap .lexw span{color:var(--ink-soft);font-style:italic;font-size:.82rem}
+.fichewrap .lexw:hover{border-color:var(--gilt);background:var(--gilt-soft)}
+.fichewrap .lexw.su{opacity:.45;cursor:default;background:transparent}
+.fichewrap .lexw.su::after{content:"✓";color:var(--vert);margin-left:2px}
+.fichewrap .lexpick .add{margin-top:8px}
+.fichewrap table.mots .sel{font-size:.88rem}
+.fichewrap .wordpick{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.fichewrap .wchip{display:inline-flex;align-items:baseline;gap:6px;border:1px solid var(--rule);background:var(--page);padding:3px 10px;border-radius:2px;border-left:3px solid var(--ink-faint)}
+.fichewrap .wchip b{font-family:var(--f-fell);font-weight:400;font-size:1.02rem}
+.fichewrap .wchip span{font-size:.8rem;color:var(--ink-soft);font-style:italic}
+.fichewrap .wchip:hover{background:var(--gilt-soft)}
+.fichewrap .c-verbe{border-left-color:var(--sang)} .fichewrap .c-nom{border-left-color:var(--azur)} .fichewrap .c-adjectif{border-left-color:var(--vert)} .fichewrap .c-propre{border-left-color:var(--gilt)}
+.fichewrap .propre{display:inline-flex;gap:3px;align-items:center;margin-left:6px}
+.fichewrap .propre .in{width:11em;font-size:.88rem;padding:2px 4px}
+.fichewrap .seq{margin-top:10px}
+.fichewrap .seqchips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.fichewrap .sq{display:inline-flex;align-items:center;gap:4px;font-family:var(--f-fell);font-size:1.02rem;border:1px solid var(--gilt);background:var(--gilt-soft);padding:1px 4px 1px 9px;border-left-width:3px}
+.fichewrap .sq button{border:0;background:transparent;color:var(--ink-faint);font-size:1rem;line-height:1;padding:0 3px}
+.fichewrap .sq button:hover{color:var(--sang)}
+.fichewrap .seqchips .plus{color:var(--ink-faint)}
+.fichewrap .seqchips .linkbtn{margin-left:8px;font-size:.82rem}
+.fichewrap .incant{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.fichewrap .incant .formule{font-family:var(--f-fell);font-style:italic;font-size:1.35rem;color:var(--gilt)}
+.fichewrap .seq .sens{font-size:.85rem;color:var(--ink-soft);margin-top:2px}
+.fichewrap.reading .lexpick{display:none}
+.fichewrap.readonly .propre{display:none}
+.lexcard .mjact .linkbtn{font-family:var(--f-label);font-size:.74rem;letter-spacing:.06em;font-weight:700}
+.lexcard .mjact .chip{font-size:.66rem;padding:1px 8px}

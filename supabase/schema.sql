@@ -220,6 +220,30 @@ do $$ begin
   begin alter publication supabase_realtime add table public.items;        exception when duplicate_object then null; end;
 end $$;
 
+-- =====================================================================
+--  LEXIQUE DE L'ANCIEN LANGAGE (mots des magiciens)
+--  Géré par le MJ depuis le site (page Lexique). Un mot masqué reste secret.
+-- =====================================================================
+create table if not exists public.lexique (
+  id         uuid primary key default gen_random_uuid(),
+  fr         text not null,                       -- sens en français
+  ancien     text not null,                       -- mot de l'ancien langage
+  categorie  text not null check (categorie in ('verbe', 'nom', 'adjectif')),
+  notes      text not null default '',
+  visible    boolean not null default true,
+  created_at timestamptz not null default now()
+);
+alter table public.lexique enable row level security;
+drop policy if exists "lexique : lire"       on public.lexique;
+drop policy if exists "lexique : gérer (MJ)" on public.lexique;
+create policy "lexique : lire" on public.lexique
+  for select using (visible or public.is_mj());
+create policy "lexique : gérer (MJ)" on public.lexique
+  for all using (public.is_mj()) with check (public.is_mj());
+do $$ begin
+  begin alter publication supabase_realtime add table public.lexique; exception when duplicate_object then null; end;
+end $$;
+
 -- ---------- Maintien en éveil ----------
 -- Supabase met en pause un projet gratuit resté inactif une semaine.
 -- Le workflow GitHub .github/workflows/keepalive.yml appelle cette fonction tous les 2 jours.

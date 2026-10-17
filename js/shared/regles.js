@@ -83,3 +83,34 @@ export const CASES = [
   { k: 'cou', l: 'Cou' }, { k: 'visage', l: 'Visage' }, { k: 'poignet', l: 'Poignet' },
 ];
 export const TYPES_OBJET = { arme: 'Arme', armure: 'Armure', consommable: 'Consommable', equipement: 'Équipement', artefact: 'Artefact' };
+
+/* ---------- Ancien langage : grammaire des incantations ----------
+   Le lexique (les mots) est dans la base, table « lexique ». Ici : les liaisons. */
+export const CATEGORIES_MOT = { verbe: 'Verbe', nom: 'Nom', adjectif: 'Adjectif / adverbe', propre: 'Nom propre' };
+export const GRAMMAIRE = [
+  { r: 'Entre un verbe et un nom', p: 'nil' },
+  { r: 'Entre un nom et un adjectif / adverbe', p: 'en' },
+  { r: 'Entre deux verbes', p: 'om' },
+  { r: 'Entre deux adjectifs / adverbes', p: 'eht' },
+  { r: 'Marque du pluriel', p: 'na d’' },
+  { r: 'Marque de l’impératif', p: '’an' },
+];
+/* Particule à placer entre deux mots consécutifs (un nom propre se comporte comme un nom) */
+export function particule(a, b) {
+  const n = c => (c === 'propre' ? 'nom' : c);
+  const x = n(a), y = n(b);
+  if (x === 'verbe' && y === 'nom') return 'nil';
+  if (x === 'nom' && y === 'adjectif') return 'en';
+  if (x === 'verbe' && y === 'verbe') return 'om';
+  if (x === 'adjectif' && y === 'adjectif') return 'eht';
+  return '';
+}
+/* Incantation complète à partir d'une suite de mots { ancien, categorie } */
+export function incantation(suite) {
+  const out = [];
+  suite.forEach((m, i) => {
+    if (i > 0) { const p = particule(suite[i - 1].categorie, m.categorie); if (p) out.push(p); }
+    out.push(m.ancien || m.fr || '?');
+  });
+  return out.join(' ');
+}

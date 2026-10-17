@@ -13,11 +13,13 @@ import grimoire from './grimoire.js';
 import fiche from './fiche/index.js';
 import table from './table.js';
 import armurerie from './armurerie.js';
+import lexique from './lexique.js';
 
 export const MODULES = [
   accueil,
   grimoire,
   fiche,
+  lexique,
   armurerie,
   table,
   // Sections prévues : affichées « bientôt » sur la page d'accueil
