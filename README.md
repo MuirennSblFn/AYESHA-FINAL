@@ -12,6 +12,8 @@ Le site est statique (HTML, CSS, JavaScript, sans outil de compilation) : il s'h
 1. Ouvrez votre projet Supabase › **SQL Editor** › **New query**.
 2. Collez tout le contenu de `supabase/schema.sql`, puis cliquez sur **Run**.
 
+Le script peut être relancé sans risque : il ne supprime aucune donnée. Après une mise à jour du site qui modifie `schema.sql` (comme l'ajout de l'armurerie), relancez-le simplement.
+
 ### 2. Brancher la connexion Discord
 1. Allez sur <https://discord.com/developers/applications> › **New Application** (nom : « Ayesha », par exemple).
 2. Dans **OAuth2** :
@@ -58,6 +60,13 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 
 **Saisie manuelle** : toutes les valeurs se tapent directement (caractéristiques, chance, valeurs actuelles et maximums de PV / PM / SM). Un maximum saisi à la main s'affiche en doré, avec la valeur calculée en rappel et un lien « ↺ calcul » pour y revenir. Les dés en ligne et le Joker fonctionnent comme avant.
 
+**Armurerie** (onglet *Armurerie*) :
+- *Catalogue* (MJ) : ajouter, modifier, masquer ou supprimer des objets. Catégories : arme, armure, consommable, équipement, artefact. Un objet masqué n'apparaît pas en boutique : pratique pour préparer un artefact avant sa découverte.
+- *Comptes des joueurs* (MJ) : créditer ou retirer un montant à un joueur, ou à tous d'un coup, avec un motif. Le relevé de chaque joueur est consultable.
+- *Boutique* (joueurs) : solde, relevé, achats. Le solde est aussi affiché en haut de chaque page et se met à jour en direct quand le MJ crédite.
+- Un achat débite le compte et ajoute l'objet à la fiche : armes et armures dans leurs tableaux, le reste dans *Objets & consommables*. Les consommables ont un bouton « Utiliser » qui retire 1 ; à 0, l'objet disparaît.
+- Le solde est protégé : il n'est pas dans la fiche, seul le MJ peut l'alimenter, et la base refuse tout achat sans fonds suffisants. La fiche, elle, reste librement modifiable (un joueur peut toujours ajouter un objet à la main).
+
 **Sauvegarde** : automatique, en ligne. L'état est affiché au-dessus de la fiche. En cas de coupure, une copie reste sur l'appareil et l'envoi reprend tout seul. Si la fiche a été modifiée entre-temps depuis un autre appareil, le site demande quelle version garder.
 
 ---
@@ -70,22 +79,24 @@ grimoire.json            contenu du Grimoire (publié depuis le Grimoire du Maî
 css/base.css             couleurs, barre du haut, boutons, fenêtres, accueil
 css/grimoire.css         styles du module Grimoire
 css/fiche.css            styles de la fiche, de La table et de l'impression
+css/armurerie.css        styles de l'armurerie
 js/config.js             adresse et clé publique Supabase
 js/core/                 socle : connexion (auth.js), routeur (router.js), outils (ui.js)
 js/shared/regles.js      règles d'Ayesha (caractéristiques, classes, sac, sorts…)
 js/shared/personnage.js  modèle du personnage, calculs, lecture et enregistrement en ligne
+js/shared/banque.js      comptes, achats, catalogue, format des euros, temps réel
 js/modules/index.js      LISTE DES MODULES (c'est ici qu'on en ajoute)
-js/modules/*.js          accueil, grimoire, table (MJ)
+js/modules/*.js          accueil, grimoire, armurerie, table (MJ)
 js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), index.js (page)
-supabase/schema.sql      tables, règles d'accès, rôle MJ, fonction de maintien en éveil
+supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), maintien en éveil
 vendor/                  bibliothèque Supabase (version figée, pas de dépendance à un CDN)
 ```
 
-### Ajouter une section (Armurerie, Centre de formation…)
-1. Créer `js/modules/armurerie.js` sur le modèle de `accueil.js` : un objet `{ id, titre, acces, nav, carte, mount(el, ctx) }` (le contrat complet est décrit en tête de `js/core/router.js`).
+### Ajouter une section (Centre de formation…)
+1. Créer `js/modules/formation.js` sur le modèle de `accueil.js` (ou de `armurerie.js` pour un exemple complet) : un objet `{ id, titre, acces, nav, carte, mount(el, ctx) }` (le contrat complet est décrit en tête de `js/core/router.js`).
 2. Dans `js/modules/index.js`, l'importer et remplacer la ligne « bientôt » correspondante.
 3. Pour lire ou modifier le personnage du joueur : `personnage.charger()` puis `personnage.modifie(data)` (voir `js/shared/personnage.js`). Les règles communes sont dans `js/shared/regles.js`.
-4. Si la section a besoin de nouvelles données en ligne (catalogue de l'armurerie…), ajouter une table et ses règles d'accès dans `supabase/schema.sql`.
+4. Si la section a besoin de nouvelles données en ligne (par exemple les formations disponibles), ajouter une table et ses règles d'accès dans `supabase/schema.sql`.
 
 ### Tester en local
 Servez le dossier avec n'importe quel petit serveur (`python3 -m http.server 8000`) et ajoutez `http://localhost:8000/` aux **Redirect URLs** de Supabase.

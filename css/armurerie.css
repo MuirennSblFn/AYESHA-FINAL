@@ -1,0 +1,108 @@
+/* =====================================================================
+   Module Armurerie
+   ===================================================================== */
+.m-armurerie{padding:20px 20px 80px}
+.armhead{max-width:1100px;margin:0 auto 14px}
+.armhead h2{font-family:var(--f-display);font-weight:400;font-size:2rem;margin:0;line-height:1.1}
+.armhead p{margin:4px 0 0;color:var(--ink-soft)}
+.m-armurerie .tabs{max-width:1100px;margin:0 auto 18px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
+.m-armurerie .tabs a{font-family:var(--f-label);font-weight:700;font-size:.84rem;letter-spacing:.08em;text-decoration:none;padding:8px 14px;color:var(--ink-soft);border:1px solid transparent;border-bottom:0;margin-bottom:-1px;border-radius:3px 3px 0 0}
+.m-armurerie .tabs a[aria-current="page"]{color:var(--ink);background:var(--page);border-color:var(--rule)}
+.m-armurerie .lbl{font-family:var(--f-label);font-size:.72rem;letter-spacing:.14em;color:var(--ink-soft);font-weight:700}
+.m-armurerie .in{font:inherit;color:var(--ink);background:var(--page-2);border:1px solid var(--rule);border-radius:2px;padding:6px 8px;width:100%}
+.m-armurerie .in:focus{outline:none;border-color:var(--gilt);box-shadow:0 0 0 3px var(--gilt-soft)}
+.m-armurerie .chip{font-family:var(--f-label);font-size:.74rem;letter-spacing:.06em;padding:3px 10px;border:1px solid var(--rule);border-radius:20px;background:transparent;font-weight:700;color:var(--ink-soft)}
+.m-armurerie .chip[aria-pressed="true"]{background:var(--gilt-soft);border-color:var(--gilt);color:var(--ink)}
+.m-armurerie .x{border:0;background:transparent;color:var(--ink-faint);font-size:1.2rem;width:30px;height:30px;border-radius:2px}
+.m-armurerie .x:hover{color:var(--sang);background:var(--sang-soft)}
+.m-armurerie .err{color:var(--sang);font-size:.9rem}
+.m-armurerie .scroll{overflow-x:auto}
+.pos{color:var(--vert)} .neg{color:var(--sang)}
+
+/* Solde dans la barre du haut */
+.slots{display:flex;gap:8px;align-items:center}
+.solde-chip{font-family:var(--f-fell);font-size:1.05rem;text-decoration:none;padding:3px 12px;border:1px solid var(--gilt);border-radius:20px;background:var(--gilt-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.solde-chip.neg{border-color:var(--sang);background:var(--sang-soft);color:var(--sang)}
+
+/* Boutique */
+.armlayout{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:290px minmax(0,1fr);gap:22px;align-items:start}
+.compte{background:var(--page);border:1px solid var(--rule);box-shadow:var(--shadow);padding:20px;position:sticky;top:calc(var(--head) + 14px)}
+.compte .solde{font-family:var(--f-display);font-size:2.4rem;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--gilt);margin-top:2px}
+.compte .solde.neg{color:var(--sang)}
+.releve{list-style:none;margin:6px 0 8px;padding:0;font-size:.9rem}
+.releve li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;padding:6px 0;border-bottom:1px dotted var(--rule)}
+.releve .d{grid-column:1/-1;font-family:var(--f-label);font-size:.66rem;letter-spacing:.08em;color:var(--ink-faint)}
+.releve .m{min-width:0;overflow-wrap:anywhere}
+.releve b{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.shopbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.shopbar .chips{display:flex;gap:6px;flex-wrap:wrap}
+.shopbar .search{font:inherit;font-size:.95rem;padding:7px 10px;border:1px solid var(--rule);border-radius:3px;background:var(--page);color:var(--ink);width:min(240px,100%)}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.item{background:var(--page);border:1px solid var(--rule);padding:14px 16px 12px;display:flex;flex-direction:column;gap:6px;border-top:3px solid var(--gilt)}
+.item.cat-arme{border-top-color:var(--sang)} .item.cat-armure{border-top-color:var(--azur)} .item.cat-consommable{border-top-color:var(--vert)} .item.cat-artefact{border-top-color:#7a5aa6}
+.item .ic{font-family:var(--f-label);font-size:.66rem;letter-spacing:.16em;font-weight:700;color:var(--ink-soft);text-transform:uppercase}
+.item h3{font-family:var(--f-fell);font-weight:400;font-size:1.3rem;margin:0;line-height:1.15}
+.carac{display:flex;flex-wrap:wrap;gap:2px 12px;font-family:var(--f-label);font-size:.76rem;letter-spacing:.04em;color:var(--ink-soft)}
+.carac b{color:var(--ink)}
+.carac .eff{font-family:var(--f-body);font-style:italic;letter-spacing:0;font-size:.88rem;flex-basis:100%}
+.item .desc{margin:0;color:var(--ink-soft);font-size:.92rem}
+.item .buy{margin-top:auto;padding-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px dotted var(--rule)}
+.item .prix{font-family:var(--f-fell);font-size:1.3rem;font-variant-numeric:tabular-nums;margin-right:auto}
+.item .qte{display:inline-flex;align-items:center;gap:2px}
+.item .qin{width:2.6em;text-align:center;font:inherit;border:1px solid var(--rule);background:var(--page-2);color:var(--ink);border-radius:2px;padding:2px}
+.item .manque{font-size:.8rem;color:var(--sang);text-align:right;font-style:italic}
+.m-armurerie .banner{max-width:none}
+.m-armurerie .banner a{color:inherit;font-weight:700}
+
+/* Comptes (MJ) */
+.tous{max-width:1100px;margin:0 auto 18px;background:var(--page);border:1px solid var(--rule);padding:14px 16px}
+.tous h3{font-family:var(--f-fell);font-weight:400;font-size:1.25rem;margin:0}
+.mvt{display:grid;grid-template-columns:7em minmax(8em,1fr) auto auto;gap:6px;align-items:center}
+.mvt .eur{text-align:right}
+table.comptes{max-width:1100px;margin:0 auto;width:100%;border-collapse:collapse;background:var(--page);border:1px solid var(--rule)}
+table.comptes th{font-family:var(--f-label);font-size:.7rem;letter-spacing:.1em;color:var(--ink-soft);text-align:left;font-weight:700;padding:10px 10px 6px;border-bottom:1px solid var(--rule)}
+table.comptes td{padding:8px 10px;border-bottom:1px dotted var(--rule);vertical-align:middle}
+table.comptes .r{text-align:right;white-space:nowrap}
+table.comptes td.solde{font-family:var(--f-fell);font-size:1.2rem;font-variant-numeric:tabular-nums}
+table.comptes tr.relrow td{background:var(--page-2);padding:4px 16px 8px}
+table.comptes tfoot td{font-family:var(--f-label);font-size:.76rem;letter-spacing:.08em;color:var(--ink-soft);border-bottom:0}
+
+/* Catalogue (MJ) */
+.catbar{max-width:1100px;margin:0 auto 12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+table.cat{max-width:1100px;margin:0 auto;width:100%;border-collapse:collapse;background:var(--page);border:1px solid var(--rule)}
+table.cat td{padding:8px 10px;border-bottom:1px dotted var(--rule);vertical-align:middle}
+table.cat td:first-child{width:100%}
+table.cat .r{text-align:right;white-space:nowrap;font-family:var(--f-fell);font-size:1.1rem}
+table.cat tr.cathead th{text-align:left;font-family:var(--f-label);font-size:.74rem;letter-spacing:.14em;color:var(--gilt);padding:14px 10px 4px;border-bottom:1px solid var(--rule)}
+table.cat tr.cathead small{color:var(--ink-faint);margin-left:6px}
+table.cat tr.masque td{opacity:.55}
+table.cat tr.masque td:nth-child(3){opacity:1}
+.itemform{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.itemform label{display:flex;flex-direction:column;gap:3px}
+.itemform .lbl small{font-weight:500;letter-spacing:.02em;color:var(--ink-faint)}
+.itemform .w2{grid-column:1/-1}
+.itemform .check{flex-direction:row;align-items:center;gap:8px}
+.itemform .in{font:inherit;color:var(--ink);background:var(--page-2);border:1px solid var(--rule);border-radius:2px;padding:6px 8px;width:100%}
+.itemform .err{color:var(--sang);font-size:.9rem}
+.itemform .lbl{font-family:var(--f-label);font-size:.7rem;letter-spacing:.12em;color:var(--ink-soft);font-weight:700}
+
+@media (max-width:860px){
+  .m-armurerie{padding:12px 10px 60px}
+  .armlayout{grid-template-columns:1fr}
+  .compte{position:static}
+  .mvt{grid-template-columns:1fr 1fr}
+  .mvt .in:nth-child(2){grid-column:2/3}
+  table.comptes thead{display:none}
+  table.comptes tr{display:grid;grid-template-columns:1fr auto;padding:8px 10px;border-bottom:1px solid var(--rule)}
+  table.comptes td{border:0;padding:3px 0}
+  table.comptes td:nth-child(4){grid-column:1/-1}
+  table.comptes tr.relrow{display:block}
+  table.comptes tfoot tr{display:flex;justify-content:space-between}
+  .itemform{grid-template-columns:1fr}
+  .slots .solde-chip{font-size:.95rem;padding:2px 10px}
+}
+.reldet{margin-top:14px}
+.reldet summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+.reldet summary::-webkit-details-marker{display:none}
+.reldet summary::after{content:"▾";font-size:.8rem;transition:transform .15s}
+.reldet:not([open]) summary::after{transform:rotate(-90deg)}

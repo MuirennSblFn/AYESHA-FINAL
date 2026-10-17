@@ -26,6 +26,7 @@ export function vierge() {
     talents: [{ t: '', j: '' }, { t: '', j: '' }, { t: '', j: '' }],
     entente: Array.from({ length: 5 }, () => ({ nom: '', a: '', note: 6 })),
     armes: [{ nom: '', stat: 'FOR', deg: '', eff: '' }], armures: [],
+    objets: [],                               // { nom, qte, eff, conso, item?, src? } — consommables et objets
     inventaire: '', apparence: '', histoire: '',
     progression: [], mots: [{ mot: '', sens: '' }, { mot: '', sens: '' }, { mot: '', sens: '' }], corps: {}, sac: Array(12).fill(''),
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -36,7 +37,7 @@ export function normaliser(c) {
   c = c && typeof c === 'object' ? c : {};
   const b = vierge(); const o = { ...b, ...c };
   ['stats', 'cur', 'corps', 'rolls', 'max'].forEach(k => o[k] = { ...b[k], ...(c[k] || {}) });
-  ['talents', 'entente', 'armes', 'armures', 'progression', 'mots', 'sac'].forEach(k => { if (!Array.isArray(o[k])) o[k] = b[k]; });
+  ['talents', 'entente', 'armes', 'armures', 'objets', 'progression', 'mots', 'sac'].forEach(k => { if (!Array.isArray(o[k])) o[k] = b[k]; });
   while (o.talents.length < 3) o.talents.push({ t: '', j: '' });
   while (o.entente.length < 5) o.entente.push({ nom: '', a: '', note: 6 });
   while (o.sac.length < 12) o.sac.push('');
@@ -101,6 +102,12 @@ export const personnage = {
   async charger({ forcer = false } = {}) {
     const id = auth.user?.id; if (!id) return null;
     if (!forcer && etat.uid === id && etat.data) return { data: etat.data, updatedAt: etat.updatedAt };
+    // Des modifications attendent d'être envoyées : les envoyer avant de relire, pour ne rien perdre
+    if (etat.uid === id && etat.data && (etat.statut === 'attente' || etat.statut === 'envoi' || etat.enCours)) {
+      if (etat.enCours) await etat.enCours.catch(() => {});
+      if (etat.statut === 'attente') await this.envoyer();
+      if (etat.statut !== 'ok') return { data: etat.data, updatedAt: etat.updatedAt };
+    }
     const { data: row, error } = await sb.from('characters').select('data, updated_at').eq('owner', id).maybeSingle();
     if (error) throw error;
     etat.uid = id;

@@ -12,13 +12,14 @@ import accueil from './accueil.js';
 import grimoire from './grimoire.js';
 import fiche from './fiche/index.js';
 import table from './table.js';
+import armurerie from './armurerie.js';
 
 export const MODULES = [
   accueil,
   grimoire,
   fiche,
+  armurerie,
   table,
   // Sections prévues : affichées « bientôt » sur la page d'accueil
-  { id: 'armurerie', bientot: true, carte: { titre: 'Armurerie', texte: "Équiper son personnage d'armes, d'armures et d'artefacts." } },
   { id: 'formation', bientot: true, carte: { titre: 'Centre de formation', texte: 'Faire progresser son personnage entre deux enquêtes.' } },
 ];

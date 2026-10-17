@@ -92,6 +92,20 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       <div class="scroll" style="margin-top:16px"><table class="gear"><thead><tr><th>Armure</th><th>Réduction</th><th>Malus DEX</th><th>Effets</th><th class="edit-only"></th></tr></thead><tbody>${amr || '<tr><td colspan="4" class="none">Aucune armure.</td></tr>'}</tbody></table></div>
       <button class="add edit-only" data-addrow="armures">＋ Ajouter une armure</button>`;
   }
+  /* ---------- Objets & consommables ---------- */
+  const qteDe = o => { const n = int(o.qte); return n == null ? 0 : n; };
+  function objetsHTML() {
+    const rows = C.objets.map((o, i) => `<tr class="${o.conso ? 'conso' : ''}">
+      <td><input class="in" id="f-obj-n-${i}" data-k="objets.${i}.nom" value="${esc(o.nom)}" placeholder="${o.conso ? 'Trousse de soin' : 'Lampe UV'}" aria-label="Objet">${o.conso ? '<span class="otag">consommable</span>' : ''}</td>
+      <td style="width:4.5em"><input class="in num oq" id="f-obj-q-${i}" data-k="objets.${i}.qte" inputmode="numeric" value="${esc(o.qte ?? '')}" placeholder="1" aria-label="Quantité"></td>
+      <td><input class="in" id="f-obj-e-${i}" data-k="objets.${i}.eff" value="${esc(o.eff)}" placeholder="—" aria-label="Effets"></td>
+      <td class="ouse">${o.conso ? `<button class="mini use" data-use="${i}" ${qteDe(o) < 1 ? 'disabled' : ''} title="Retire 1 de la quantité">Utiliser</button>` : ''}</td>
+      <td class="edit-only"><button class="x" data-del="objets.${i}" aria-label="Retirer">×</button></td></tr>`).join('');
+    return `<div class="scroll"><table class="gear objets"><thead><tr><th>Objet</th><th>Qté</th><th>Effets</th><th></th><th class="edit-only"></th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="none">Aucun objet. Les achats de l’armurerie arrivent ici.</td></tr>'}</tbody></table></div>
+      <button class="add edit-only" data-addrow="conso">＋ Ajouter un consommable</button> <button class="add edit-only" data-addrow="objet">＋ Ajouter un objet</button>`;
+  }
+  const renderObjets = () => { q('#objets').innerHTML = objetsHTML(); verrouiller(); };
+
   function armBonus(i) { const a = C.armes[i]; if (!a) return ''; const b = bonusDegats(int(C.stats[a.stat])); return b ? `+${b}` : ''; }
 
   /* ---------- Classe ---------- */
@@ -237,6 +251,8 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
 
     <section class="block"><h2>Armes &amp; armures <span class="sub">les armes à feu ne blessent pas les créatures de la Brume</span></h2><div id="gear">${gearHTML()}</div></section>
 
+    <section class="block"><h2>Objets &amp; consommables <span class="sub">achetés à l'armurerie ou ajoutés à la main</span></h2><div id="objets">${objetsHTML()}</div></section>
+
     <div class="cols">
       <section class="block"><h2>Inventaire</h2><textarea class="ta" id="f-inv" data-k="inventaire" rows="6" placeholder="Sac à dos, poches, voiture… et les artefacts de l'armurerie.">${esc(C.inventaire)}</textarea></section>
       <section class="block"><h2>Apparence <span class="sub">quelques mots suffisent</span></h2><textarea class="ta" id="f-app" data-k="apparence" rows="6" placeholder="Nuage de mots ou quelques phrases.">${esc(C.apparence)}</textarea></section>
@@ -273,6 +289,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       setPath(C, t.dataset.k, t.value);
       if (/^stats\./.test(t.dataset.k)) { const k = t.dataset.k.slice(6); delete C.rolls[k]; const d = q('[data-dice="' + k + '"]'); if (d) d.textContent = ''; }
       if (t.dataset.k === 'chance') { C.chanceRoll = null; }
+      if (/^objets\.\d+\.qte$/.test(t.dataset.k)) { const b = t.closest('tr')?.querySelector('[data-use]'); if (b) b.disabled = (int(t.value) || 0) < 1; }
       persist();
       if (/^mots\./.test(t.dataset.k)) renderSpell();
       renderDerived();
@@ -315,12 +332,22 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       if (C.progression.length && !await confirmer({ titre: 'Changer de classe ?', texte: `Les ${C.progression.length} niveaux de progression déjà choisis seront effacés.`, oui: `Changer pour ${CLASSES[k].nom}` })) return;
       C.classe = k; C.progression = []; persist(); renderClass(); renderDerived(); syncClassName(); return;
     }
+    if (t.dataset.use !== undefined) {   // fonctionne aussi en mode lecture, pendant la partie
+      const o = C.objets[+t.dataset.use]; if (!o) return;
+      const n = qteDe(o) - 1;
+      if (n <= 0) { C.objets.splice(+t.dataset.use, 1); toast(`${o.nom || 'Objet'} : épuisé, retiré de la fiche`); }
+      else { o.qte = n; toast(`${o.nom || 'Objet'} utilisé · reste ${n}`); }
+      persist(); renderObjets(); return;
+    }
     if (t.dataset.addrow) {
-      const k = t.dataset.addrow; const row = { armes: { nom: '', stat: 'FOR', deg: '', eff: '' }, armures: { nom: '', red: '', mal: '', eff: '' }, mots: { mot: '', sens: '' } }[k];
+      const k = t.dataset.addrow;
+      if (k === 'conso' || k === 'objet') { C.objets.push({ nom: '', qte: 1, eff: '', conso: k === 'conso' }); persist(); renderObjets(); const n = q(`#f-obj-n-${C.objets.length - 1}`); n && n.focus(); return; }
+      const row = { armes: { nom: '', stat: 'FOR', deg: '', eff: '' }, armures: { nom: '', red: '', mal: '', eff: '' }, mots: { mot: '', sens: '' } }[k];
       C[k].push(row); persist(); if (k === 'mots') renderClass(); else q('#gear').innerHTML = gearHTML(); renderDerived(); return;
     }
     if (t.dataset.del) {
       const [k, i] = t.dataset.del.split('.'); C[k].splice(+i, 1); persist();
+      if (k === 'objets') { renderObjets(); return; }
       if (k === 'armes' || k === 'armures') q('#gear').innerHTML = gearHTML(); else renderClass(); renderDerived(); return;
     }
     if (t.id === 'portrait') { if (!reading) q('#file-portrait').click(); return; }

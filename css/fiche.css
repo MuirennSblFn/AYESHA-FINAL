@@ -312,3 +312,11 @@
   .ps{box-shadow:none;margin:0!important;break-after:page}
   .ps:last-child{break-after:auto}
 }
+
+/* Objets & consommables */
+.fichewrap table.objets .otag{display:inline-block;font-family:var(--f-label);font-size:.62rem;letter-spacing:.1em;font-weight:700;color:var(--vert);border:1px solid color-mix(in srgb,var(--vert) 50%,transparent);border-radius:20px;padding:0 7px;margin-top:2px}
+.fichewrap table.objets td.ouse{width:5.5em;text-align:right;vertical-align:middle}
+.fichewrap table.objets .use{color:var(--vert);border-color:color-mix(in srgb,var(--vert) 50%,var(--rule))}
+.fichewrap table.objets .use:hover{background:color-mix(in srgb,var(--vert) 12%,transparent)}
+.fichewrap .add+.add{margin-left:6px}
+.fichewrap.reading table.objets .oq{pointer-events:none}

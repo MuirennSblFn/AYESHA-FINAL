@@ -53,6 +53,8 @@ export function ficheImprimable(C) {
   const armures = C.armures.filter(a => String(a.nom || '').trim());
   const arm = armes.map(a => { const b = bonusDegats(int(C.stats[a.stat])); return `<tr><td>${esc(a.nom)}</td><td>${esc(a.stat)}</td><td>${esc(a.deg)}${b ? ` +${b}` : ''}</td><td>${esc(a.eff)}</td></tr>`; }).join('');
   const amr = armures.map(a => `<tr><td>${esc(a.nom)}</td><td class="tn">${esc(a.red)}</td><td class="tn">${esc(a.mal)}</td><td>${esc(a.eff)}</td></tr>`).join('');
+  const objs = (C.objets || []).filter(o => String(o.nom || '').trim());
+  const objets = objs.map(o => `<tr><td>${esc(o.nom)}${o.eff ? ` <small style="color:var(--ps)">· ${esc(o.eff)}</small>` : ''}</td><td class="tn" style="width:10mm;text-align:right">${esc(o.qte ?? '')}</td></tr>`).join('');
   const blankRows = (n, c) => Array.from({ length: n }, () => `<tr>${'<td></td>'.repeat(c)}</tr>`).join('');
   const foot = p => `<div class="ps-foot"><span>AYESHA · FICHE DE PERSONNAGE</span><span>${esc((C.nom || '').toUpperCase())}${C.nom ? ' · ' : ''}${p} / 2</span></div>`;
 
@@ -78,10 +80,13 @@ export function ficheImprimable(C) {
     <div class="sec"><h3>Armes<small>NOM / STAT / DÉGÂTS / EFFETS</small></h3><table><thead><tr><th>Arme</th><th style="width:12mm">Stat</th><th style="width:22mm">Dégâts</th><th>Effets</th></tr></thead><tbody>${arm}${blankRows(Math.max(2, 4 - armes.length), 4)}</tbody></table></div>
     <div class="sec"><h3>Armures<small>RÉDUCTION / MALUS DEX / EFFETS</small></h3><table><thead><tr><th>Armure</th><th style="width:18mm">Réduction</th><th style="width:18mm">Malus DEX</th><th>Effets</th></tr></thead><tbody>${amr}${blankRows(Math.max(1, 2 - armures.length), 4)}</tbody></table></div>
     <div class="two">
+      <div class="sec"><h3>Objets &amp; consommables<small>QTÉ</small></h3><table class="ps-obj"><tbody>${objets}${blankRows(Math.max(2, 6 - objs.length), 2)}</tbody></table></div>
       <div class="sec"><h3>Inventaire</h3>${psText(C.inventaire)}</div>
-      <div class="sec"><h3>Apparence</h3>${psText(C.apparence)}</div>
     </div>
-    <div class="sec"><h3>Histoire</h3>${psText(C.histoire)}</div>
+    <div class="two">
+      <div class="sec"><h3>Apparence</h3>${psText(C.apparence)}</div>
+      <div class="sec"><h3>Histoire</h3>${psText(C.histoire)}</div>
+    </div>
     <div class="sec"><h3>Notes de partie<small>MOTS APPRIS, ARTEFACTS, BESTIAIRE</small></h3><div class="ps-text lines" style="min-height:34mm"></div></div>
     ${foot(2)}
   </section>`;

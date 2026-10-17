@@ -12,6 +12,7 @@
      acces: 'public' | 'joueur' | 'mj',        // qui peut l'ouvrir
      carte: { titre, texte }         // facultatif : carte sur la page d'accueil
      bientot: true                   // facultatif : affiché « bientôt » à l'accueil, non navigable
+     enTete(el, ctx) { … }           // facultatif : petit élément dans la barre du haut
      async mount(el, ctx) {          // dessine le module dans el
        return { update(params){…}, unmount(){…} }   // tout est facultatif
      }
@@ -51,7 +52,14 @@ function renderHeader(actif) {
   $('#top').innerHTML = `
     <a class="brand" href="#/">${SIGIL_SMALL}<div><h1>${esc(CONFIG.nom)}</h1><small>${esc(CONFIG.sousTitre)}</small></div></a>
     <nav class="mainnav" aria-label="Sections">${nav}</nav>
+    <span class="slots" id="slots"></span>
     ${user}`;
+  // Les modules peuvent afficher un petit élément dans la barre (ex. le solde de l'armurerie)
+  const slots = $('#slots');
+  MODULES.filter(m => m.enTete && !m.bientot && peutVoir(m)).forEach(m => {
+    const s = document.createElement('span'); slots.appendChild(s);
+    try { m.enTete(s, { auth, naviguer, modules: MODULES }); } catch (e) { console.error(e); }
+  });
 }
 
 export async function render() {

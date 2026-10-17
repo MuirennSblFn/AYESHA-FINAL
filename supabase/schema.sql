@@ -99,6 +99,128 @@ create policy "fiche : modifier la sienne" on public.characters
 create policy "fiche : supprimer la sienne" on public.characters
   for delete using (owner = auth.uid());
 
+-- =====================================================================
+--  ARMURERIE : catalogue, comptes en banque, achats
+--  Les montants sont en centimes d'euro (1250 = 12,50 €).
+-- =====================================================================
+
+-- ---------- Catalogue (géré par le MJ depuis le site) ----------
+create table if not exists public.items (
+  id          uuid primary key default gen_random_uuid(),
+  nom         text not null,
+  categorie   text not null check (categorie in ('arme', 'armure', 'consommable', 'artefact', 'equipement')),
+  prix        bigint not null default 0 check (prix >= 0),
+  description text not null default '',
+  stat        text not null default 'FOR',   -- armes : caractéristique testée
+  degats      text not null default '',      -- armes
+  reduction   text not null default '',      -- armures
+  malus       text not null default '',      -- armures : malus de DEX
+  effets      text not null default '',
+  visible     boolean not null default true, -- masqué = invisible pour les joueurs
+  created_at  timestamptz not null default now()
+);
+alter table public.items enable row level security;
+drop policy if exists "catalogue : lire"        on public.items;
+drop policy if exists "catalogue : gérer (MJ)"  on public.items;
+create policy "catalogue : lire" on public.items
+  for select using (visible or public.is_mj());
+create policy "catalogue : gérer (MJ)" on public.items
+  for all using (public.is_mj()) with check (public.is_mj());
+
+-- ---------- Relevé de compte : une ligne par mouvement ----------
+-- Aucune écriture directe : uniquement via les fonctions mouvement() et acheter().
+create table if not exists public.transactions (
+  id         bigint generated always as identity primary key,
+  owner      uuid not null references public.profiles (id) on delete cascade,
+  montant    bigint not null,                 -- positif = crédit, négatif = débit
+  motif      text not null default '',
+  item_id    uuid references public.items (id) on delete set null,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create index if not exists transactions_owner on public.transactions (owner, created_at desc);
+alter table public.transactions enable row level security;
+drop policy if exists "relevé : lire le sien ou MJ" on public.transactions;
+create policy "relevé : lire le sien ou MJ" on public.transactions
+  for select using (owner = auth.uid() or public.is_mj());
+
+-- ---------- MJ : créditer ou retirer de l'argent ----------
+create or replace function public.mouvement(p_joueur uuid, p_montant bigint, p_motif text)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare v_solde bigint;
+begin
+  if not public.is_mj() then raise exception 'Seul le MJ peut créditer ou débiter un compte.'; end if;
+  if p_montant = 0 then raise exception 'Le montant ne peut pas être nul.'; end if;
+  if not exists (select 1 from profiles where id = p_joueur) then raise exception 'Joueur introuvable.'; end if;
+  insert into transactions (owner, montant, motif) values (p_joueur, p_montant, coalesce(nullif(trim(p_motif), ''), case when p_montant > 0 then 'Crédit du MJ' else 'Retrait du MJ' end));
+  select coalesce(sum(montant), 0) into v_solde from transactions where owner = p_joueur;
+  return v_solde;
+end $$;
+grant execute on function public.mouvement(uuid, bigint, text) to authenticated;
+
+-- ---------- Joueur : acheter (vérifie le solde, débite et ajoute à la fiche d'un seul coup) ----------
+create or replace function public.acheter(p_item uuid, p_qte int default 1)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_it items%rowtype;
+  v_qte int;
+  v_total bigint;
+  v_solde bigint;
+  v_data jsonb;
+  v_objs jsonb;
+  v_idx int;
+  v_old text;
+begin
+  if v_uid is null then raise exception 'Connectez-vous pour acheter.'; end if;
+  perform pg_advisory_xact_lock(hashtext('achat-' || v_uid::text));   -- un achat à la fois par joueur
+
+  select * into v_it from items where id = p_item and visible;
+  if not found then raise exception 'Cet objet n''est plus disponible.'; end if;
+
+  v_qte := case when v_it.categorie in ('arme', 'armure') then 1 else greatest(1, least(coalesce(p_qte, 1), 99)) end;
+  v_total := v_it.prix * v_qte;
+
+  select data into v_data from characters where owner = v_uid for update;
+  if not found then raise exception 'Créez d''abord votre fiche de personnage.'; end if;
+
+  select coalesce(sum(montant), 0) into v_solde from transactions where owner = v_uid;
+  if v_solde < v_total then raise exception 'Solde insuffisant.'; end if;
+
+  insert into transactions (owner, montant, motif, item_id)
+  values (v_uid, -v_total, 'Achat : ' || v_it.nom || case when v_qte > 1 then ' ×' || v_qte else '' end, v_it.id);
+
+  -- Ajout à la fiche
+  if v_it.categorie = 'arme' then
+    v_data := jsonb_set(v_data, '{armes}', coalesce(v_data -> 'armes', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+      'nom', v_it.nom, 'stat', v_it.stat, 'deg', v_it.degats, 'eff', v_it.effets, 'src', 'armurerie')));
+  elsif v_it.categorie = 'armure' then
+    v_data := jsonb_set(v_data, '{armures}', coalesce(v_data -> 'armures', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+      'nom', v_it.nom, 'red', v_it.reduction, 'mal', v_it.malus, 'eff', v_it.effets, 'src', 'armurerie')));
+  else
+    v_objs := coalesce(v_data -> 'objets', '[]'::jsonb);
+    select (ord - 1)::int into v_idx from jsonb_array_elements(v_objs) with ordinality e(v, ord) where v ->> 'item' = v_it.id::text limit 1;
+    if v_idx is null then
+      v_objs := v_objs || jsonb_build_array(jsonb_build_object(
+        'item', v_it.id, 'nom', v_it.nom, 'qte', v_qte, 'conso', v_it.categorie = 'consommable', 'eff', v_it.effets, 'src', 'armurerie'));
+    else
+      v_old := v_objs -> v_idx ->> 'qte';
+      v_objs := jsonb_set(v_objs, array[v_idx::text, 'qte'], to_jsonb(case when v_old ~ '^\d+$' then v_old::int else 0 end + v_qte));
+    end if;
+    v_data := jsonb_set(v_data, '{objets}', v_objs);
+  end if;
+  update characters set data = v_data where owner = v_uid;
+
+  return v_solde - v_total;
+end $$;
+grant execute on function public.acheter(uuid, int) to authenticated;
+
+-- ---------- Temps réel : prévenir les pages ouvertes des nouveaux mouvements ----------
+do $$ begin
+  begin alter publication supabase_realtime add table public.transactions; exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table public.items;        exception when duplicate_object then null; end;
+end $$;
+
 -- ---------- Maintien en éveil ----------
 -- Supabase met en pause un projet gratuit resté inactif une semaine.
 -- Le workflow GitHub .github/workflows/keepalive.yml appelle cette fonction tous les 2 jours.
