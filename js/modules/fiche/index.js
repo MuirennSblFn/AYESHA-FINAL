@@ -72,6 +72,7 @@ export default {
     let reading = false;
     try { reading = localStorage.getItem('ayesha.lecture') === '1'; } catch (e) {}
     fiche = creerFiche($('#fiche', root), p.data, { onChange: C => personnage.modifie(C) });
+    if (p.data._converti) { delete p.data._converti; personnage.modifie(p.data); }   // ancienne fiche : enregistrer le nouveau format
     fiche.lecture(reading);
     const majLecture = () => { const b = $('#readBtn', root); b.setAttribute('aria-pressed', String(reading)); b.textContent = reading ? 'Modifier' : 'Lecture'; };
     majLecture();

@@ -6,11 +6,13 @@
    pour lire ou modifier le personnage du joueur :
 
      const p = await personnage.charger();     // { data, updatedAt } ou null
-     p.data.armes.push({...}); personnage.modifie(p.data);   // sauvegarde différée
+     equiper(p.data, id); personnage.modifie(p.data);   // sauvegarde différée
+   Équipement et inventaire : voir equipement.js
    ===================================================================== */
 import { sb } from '../core/supabase.js';
 import { auth } from '../core/auth.js';
 import { STATS, VOIE } from './regles.js';
+import { migrerEquipement, malusPorte } from './equipement.js';
 
 export const FORMAT = 'ayesha-fiche-v1';
 const uid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -25,9 +27,8 @@ export function vierge() {
     cur: { pv: null, pm: null, sm: null, ch: null },
     talents: [{ t: '', j: '' }, { t: '', j: '' }, { t: '', j: '' }],
     entente: Array.from({ length: 5 }, () => ({ nom: '', a: '', note: 6 })),
-    armes: [{ nom: '', stat: 'FOR', deg: '', eff: '' }], armures: [],
-    objets: [],                               // { nom, qte, eff, conso, item?, src? } — consommables et objets
-    inventaire: '', apparence: '', histoire: '',
+    possessions: [],                          // inventaire ET équipement porté : voir equipement.js
+    inventaire: '',                           // notes libres (« Autres affaires ») apparence: '', histoire: '',
     progression: [], mots: [{ mot: '', sens: '' }, { mot: '', sens: '' }, { mot: '', sens: '' }], corps: {}, sac: Array(12).fill(''),
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   };
@@ -37,7 +38,8 @@ export function normaliser(c) {
   c = c && typeof c === 'object' ? c : {};
   const b = vierge(); const o = { ...b, ...c };
   ['stats', 'cur', 'corps', 'rolls', 'max'].forEach(k => o[k] = { ...b[k], ...(c[k] || {}) });
-  ['talents', 'entente', 'armes', 'armures', 'objets', 'progression', 'mots', 'sac'].forEach(k => { if (!Array.isArray(o[k])) o[k] = b[k]; });
+  ['talents', 'entente', 'possessions', 'progression', 'mots', 'sac'].forEach(k => { if (!Array.isArray(o[k])) o[k] = b[k]; });
+  migrerEquipement(o);                       // anciennes listes armes / armures / objets → possessions
   while (o.talents.length < 3) o.talents.push({ t: '', j: '' });
   while (o.entente.length < 5) o.entente.push({ nom: '', a: '', note: 6 });
   while (o.sac.length < 12) o.sac.push('');
@@ -49,7 +51,7 @@ export function normaliser(c) {
 export const brut = (C, k) => { const n = int(C.stats[k]); return n == null ? null : Math.floor(n / 5); };
 export const compte = (C, v) => C.progression.filter(p => p.voie === v && VOIE[v] && VOIE[v].classe === C.classe).length;
 export const niveau = C => 1 + C.progression.length;
-export const malusArmure = C => C.armures.reduce((s, a) => s + Math.abs(int(a.mal) || 0), 0);
+export const malusArmure = C => malusPorte(C);
 export const bonusDegats = n => (n != null && n > 50) ? Math.floor((n - 50) / 10) : 0;
 
 /* Maximums calculés par les règles (null si les caractéristiques manquent) */

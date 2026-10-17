@@ -5,7 +5,7 @@
    #/armurerie/catalogue  (MJ) gérer les objets en vente
    ===================================================================== */
 import { $, $$, esc, toast, modal, confirmer, fmtDateHeure } from '../core/ui.js';
-import { STATS } from '../shared/regles.js';
+import { STATS, EMPLACEMENTS, EMPL_PAR_TYPE } from '../shared/regles.js';
 import { personnage } from '../shared/personnage.js';
 import { banque, catalogue, euros, lireEuros, CATEGORIES, message } from '../shared/banque.js';
 
@@ -13,6 +13,7 @@ const avecQuantite = cat => cat === 'consommable' || cat === 'equipement' || cat
 
 function caracteristiques(it) {
   const p = [];
+  if (it.emplacement) p.push(`<span class="empl">${esc(EMPLACEMENTS[it.emplacement]?.court || it.emplacement)}</span>`);
   if (it.categorie === 'arme') { p.push(`Teste <b>${esc(it.stat || 'FOR')}</b>`); if (it.degats) p.push(`Dégâts <b>${esc(it.degats)}</b>`); }
   if (it.categorie === 'armure') { if (it.reduction) p.push(`Réduction <b>${esc(it.reduction)}</b>`); if (it.malus) p.push(`Malus DEX <b>${esc(it.malus)}</b>`); }
   if (it.effets) p.push(`<span class="eff">${esc(it.effets)}</span>`);
@@ -50,7 +51,7 @@ export default {
           <a href="#/armurerie" ${onglet === 'boutique' ? 'aria-current="page"' : ''}>Boutique</a>
           <a href="#/armurerie/comptes" ${onglet === 'comptes' ? 'aria-current="page"' : ''}>Comptes des joueurs</a>
           <a href="#/armurerie/catalogue" ${onglet === 'catalogue' ? 'aria-current="page"' : ''}>Catalogue</a></nav>` : '';
-      root.innerHTML = `<div class="armhead"><div><h2>Armurerie</h2><p>${auth.isMJ ? 'Gérez le catalogue et les comptes des joueurs.' : 'Les achats sont débités de votre compte et ajoutés directement à votre fiche.'}</p></div></div>${tabs}<div id="armview"><div class="loading">Chargement…</div></div>`;
+      root.innerHTML = `<div class="armhead"><div><h2>Armurerie</h2><p>${auth.isMJ ? 'Gérez le catalogue et les comptes des joueurs.' : 'Les achats sont débités de votre compte et rangés dans l’inventaire de votre fiche.'}</p></div></div>${tabs}<div id="armview"><div class="loading">Chargement…</div></div>`;
       const el = $('#armview', root);
       vue = onglet === 'comptes' ? await vueComptes(el) : onglet === 'catalogue' ? await vueCatalogue(el) : await vueBoutique(el, auth);
     }
@@ -71,12 +72,15 @@ async function vueBoutique(el, auth) {
     releveOuvert: !window.matchMedia('(max-width: 860px)').matches };   // replié sur téléphone
   el.addEventListener('toggle', e => { if (e.target.classList?.contains('reldet')) st.releveOuvert = e.target.open; }, true);
 
+  let gen = 0;
   async function charger() {
+    const g = ++gen;
     const [items, releve, fiche] = await Promise.all([
       catalogue.lister(),
       banque.releve(),
       personnage.charger({ forcer: true }).catch(() => null),
     ]);
+    if (g !== gen) return;
     st.items = items.filter(i => i.visible); st.releve = releve; st.fiche = fiche;
     st.solde = releve.reduce((s, t) => s + Number(t.montant), 0);
   }
@@ -134,14 +138,14 @@ async function vueBoutique(el, auth) {
   async function acheter(id) {
     const it = st.items.find(i => i.id === id); if (!it) return;
     const q = avecQuantite(it.categorie) ? (st.qte[id] || 1) : 1, total = it.prix * q;
-    const ou = it.categorie === 'arme' ? 'vos armes' : it.categorie === 'armure' ? 'vos armures' : 'vos objets & consommables';
-    if (!await confirmer({ titre: `Acheter ${esc(it.nom)}${q > 1 ? ' ×' + q : ''} ?`, texte: `<b>${euros(total)}</b> seront débités. Solde après l’achat : <b>${euros(st.solde - total)}</b>.<br>L’objet sera ajouté à ${ou} sur votre fiche.`, oui: 'Acheter' })) return;
+
+    if (!await confirmer({ titre: `Acheter ${esc(it.nom)}${q > 1 ? ' ×' + q : ''} ?`, texte: `<b>${euros(total)}</b> seront débités. Solde après l’achat : <b>${euros(st.solde - total)}</b>.<br>L’objet arrivera dans l’inventaire de votre fiche${it.emplacement ? ' : équipez-le depuis la fiche pour qu’il compte' : ''}.`, oui: 'Acheter' })) return;
     try {
       if (personnage.statut === 'attente' || personnage.statut === 'envoi') await personnage.envoyer();
       await banque.acheter(id, q);
       st.qte[id] = 1;
       await charger(); render();
-      toast(`${it.nom}${q > 1 ? ' ×' + q : ''} ajouté à votre fiche`);
+      toast(`${it.nom}${q > 1 ? ' ×' + q : ''} ajouté à votre inventaire`);
     } catch (e) { toast('Achat impossible : ' + message(e)); await charger(); render(); }
   }
 
@@ -169,11 +173,13 @@ async function vueBoutique(el, auth) {
    Comptes des joueurs (MJ)
    ===================================================================== */
 async function vueComptes(el) {
-  let joueurs = [], soldes = {}, ouvert = null, releve = [];
-  async function charger() {
+  let joueurs = [], soldes = {}, ouvert = null, releve = [], gen = 0;
+  async function charger() {   // seule la dernière demande l'emporte si plusieurs se chevauchent
+    const g = ++gen;
     const [j, s] = await Promise.all([personnage.tousLesJoueurs(), banque.tousLesSoldes()]);
-    joueurs = j.filter(x => x.role !== 'mj' || x.perso); soldes = s;
-    if (ouvert) releve = await banque.releve(ouvert);
+    const r = ouvert ? await banque.releve(ouvert) : [];
+    if (g !== gen) return;
+    joueurs = j.filter(x => x.role !== 'mj' || x.perso); soldes = s; releve = r;
   }
   const formMvt = id => `<span class="mvt"><input class="in eur" data-montant="${id}" inputmode="decimal" placeholder="0,00 €" aria-label="Montant"><input class="in" data-motif="${id}" placeholder="Motif (prime, amende…)" aria-label="Motif"><button class="btn" data-c="credit" data-id="${id}">Créditer</button><button class="btn danger" data-c="debit" data-id="${id}">Retirer</button></span>`;
   function render() {
@@ -223,8 +229,8 @@ async function vueComptes(el) {
    Catalogue (MJ)
    ===================================================================== */
 async function vueCatalogue(el) {
-  let items = [];
-  async function charger() { items = await catalogue.lister(); }
+  let items = [], gen = 0;
+  async function charger() { const g = ++gen; const l = await catalogue.lister(); if (g === gen) items = l; }
   function render() {
     const parCat = Object.keys(CATEGORIES).map(c => {
       const l = items.filter(i => i.categorie === c); if (!l.length) return '';
@@ -244,6 +250,7 @@ async function vueCatalogue(el) {
         <label class="w2"><span class="lbl">NOM</span><input class="in" name="nom" required value="${esc(it.nom || '')}" autofocus></label>
         <label><span class="lbl">CATÉGORIE</span><select class="in" name="categorie">${Object.entries(CATEGORIES).map(([k, c]) => `<option value="${k}" ${it.categorie === k ? 'selected' : ''}>${c.s}</option>`).join('')}</select></label>
         <label><span class="lbl">PRIX (€)</span><input class="in" name="prix" inputmode="decimal" value="${esc(((it.prix || 0) / 100).toFixed(2).replace('.', ','))}"></label>
+        <label class="f-empl"><span class="lbl">EMPLACEMENT</span><select class="in" name="emplacement"></select></label>
         <label class="f-arme"><span class="lbl">STAT TESTÉE</span><select class="in" name="stat">${STATS.map(s => `<option ${it.stat === s.k ? 'selected' : ''}>${s.k}</option>`).join('')}</select></label>
         <label class="f-arme"><span class="lbl">DÉGÂTS</span><input class="in" name="degats" value="${esc(it.degats || '')}" placeholder="1d6"></label>
         <label class="f-armure"><span class="lbl">RÉDUCTION</span><input class="in" name="reduction" value="${esc(it.reduction || '')}" placeholder="2"></label>
@@ -255,13 +262,18 @@ async function vueCatalogue(el) {
         <div class="row w2"><button class="btn primary" type="submit">Enregistrer</button><button class="btn" type="button" data-close>Annuler</button></div>
       </form>`);
     const f = $('#itemform', m);
-    const sync = () => { const c = f.categorie.value; $$('.f-arme', f).forEach(x => x.hidden = c !== 'arme'); $$('.f-armure', f).forEach(x => x.hidden = c !== 'armure'); };
+    const sync = () => {
+      const c = f.categorie.value; $$('.f-arme', f).forEach(x => x.hidden = c !== 'arme'); $$('.f-armure', f).forEach(x => x.hidden = c !== 'armure');
+      const opts = EMPL_PAR_TYPE[c] || [''], cur = f.emplacement.value || it.emplacement || '';
+      f.emplacement.innerHTML = opts.map(e => `<option value="${e}" ${e === cur ? 'selected' : ''}>${e ? EMPLACEMENTS[e].l : 'Ne s’équipe pas'}</option>`).join('');
+      $('.f-empl', f).hidden = opts.length === 1 && !opts[0];
+    };
     f.categorie.addEventListener('change', sync); sync();
     f.addEventListener('submit', async e => {
       e.preventDefault();
       const prix = lireEuros(f.prix.value), err = $('#iferr', m);
       if (prix == null || prix < 0) { err.textContent = 'Prix illisible : écrivez par exemple 12 ou 12,50.'; err.hidden = false; return; }
-      const data = { nom: f.nom.value.trim(), categorie: f.categorie.value, prix, stat: f.stat.value, degats: f.degats.value.trim(), reduction: f.reduction.value.trim(), malus: f.malus.value.trim(), effets: f.effets.value.trim(), description: f.description.value.trim(), visible: f.visible.checked };
+      const data = { nom: f.nom.value.trim(), categorie: f.categorie.value, emplacement: f.emplacement.value, prix, stat: f.stat.value, degats: f.degats.value.trim(), reduction: f.reduction.value.trim(), malus: f.malus.value.trim(), effets: f.effets.value.trim(), description: f.description.value.trim(), visible: f.visible.checked };
       if (!data.nom) { err.textContent = 'Donnez un nom à l’objet.'; err.hidden = false; return; }
       if (it.id) data.id = it.id;
       try { await catalogue.enregistrer(data); m.close(); toast(it.id ? 'Objet modifié' : 'Objet ajouté au catalogue'); await charger(); render(); }

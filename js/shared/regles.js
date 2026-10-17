@@ -50,3 +50,36 @@ export const TALENTS = ['Forcer une porte', 'Porter une charge sans fatigue', 'B
 export const JAUGES = [['pv', 'PV', 'Points de vie'], ['pm', 'PM', 'Points de magie'], ['sm', 'SM', 'Santé mentale'], ['ch', 'Ch', 'Chance']];
 
 export const d6 = () => 1 + Math.floor(Math.random() * 6);
+
+/* ---------- Équipement : emplacements ----------
+   Un objet a un « emplacement » (où il se porte). Un emplacement du corps ne contient qu'un objet.
+   Les armes se tiennent en main : une main, deux mains ; un bouclier prend une main. */
+export const EMPLACEMENTS = {
+  main:          { l: 'Une main',          court: 'Une main' },
+  deux_mains:    { l: 'Deux mains',        court: 'Deux mains' },
+  bouclier:      { l: 'Bouclier (une main)', court: 'Bouclier' },
+  tete:          { l: 'Tête',              court: 'Tête' },
+  corps_dessous: { l: 'Corps — dessous',   court: 'Corps (dessous)' },
+  corps_dessus:  { l: 'Corps — dessus',    court: 'Corps (dessus)' },
+  gants:         { l: 'Mains (gants)',     court: 'Gants' },
+  pieds:         { l: 'Pieds',             court: 'Pieds' },
+  cou:           { l: 'Cou',               court: 'Cou' },
+  visage:        { l: 'Visage',            court: 'Visage' },
+  poignet:       { l: 'Poignet',           court: 'Poignet' },
+};
+/* Emplacements proposés selon la catégorie de l'objet ('' = ne s'équipe pas) */
+export const EMPL_PAR_TYPE = {
+  arme: ['main', 'deux_mains'],
+  armure: ['corps_dessus', 'corps_dessous', 'tete', 'gants', 'pieds', 'bouclier', 'cou', 'visage', 'poignet'],
+  equipement: ['', 'main', 'deux_mains', 'tete', 'cou', 'visage', 'poignet', 'gants', 'pieds', 'corps_dessous', 'corps_dessus'],
+  artefact: ['', 'main', 'deux_mains', 'cou', 'visage', 'poignet', 'tete', 'gants', 'corps_dessous', 'corps_dessus'],
+  consommable: [''],
+};
+/* Les cases visibles sur la fiche, dans l'ordre */
+export const CASES = [
+  { k: 'main_d', l: 'Main droite' }, { k: 'main_g', l: 'Main gauche' },
+  { k: 'tete', l: 'Tête' }, { k: 'corps_dessous', l: 'Corps — dessous' }, { k: 'corps_dessus', l: 'Corps — dessus' },
+  { k: 'gants', l: 'Gants' }, { k: 'pieds', l: 'Pieds' },
+  { k: 'cou', l: 'Cou' }, { k: 'visage', l: 'Visage' }, { k: 'poignet', l: 'Poignet' },
+];
+export const TYPES_OBJET = { arme: 'Arme', armure: 'Armure', consommable: 'Consommable', equipement: 'Équipement', artefact: 'Artefact' };

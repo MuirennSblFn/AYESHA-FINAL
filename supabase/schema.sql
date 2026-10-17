@@ -119,6 +119,9 @@ create table if not exists public.items (
   visible     boolean not null default true, -- masqué = invisible pour les joueurs
   created_at  timestamptz not null default now()
 );
+-- Où l'objet se porte ('' = ne s'équipe pas) : main, deux_mains, bouclier, tete, corps_dessous,
+-- corps_dessus, gants, pieds, cou, visage, poignet
+alter table public.items add column if not exists emplacement text not null default '';
 alter table public.items enable row level security;
 drop policy if exists "catalogue : lire"        on public.items;
 drop policy if exists "catalogue : gérer (MJ)"  on public.items;
@@ -158,7 +161,7 @@ begin
 end $$;
 grant execute on function public.mouvement(uuid, bigint, text) to authenticated;
 
--- ---------- Joueur : acheter (vérifie le solde, débite et ajoute à la fiche d'un seul coup) ----------
+-- ---------- Joueur : acheter (vérifie le solde, débite et ajoute à l'inventaire d'un seul coup) ----------
 create or replace function public.acheter(p_item uuid, p_qte int default 1)
 returns bigint language plpgsql security definer set search_path = public as $$
 declare
@@ -190,25 +193,21 @@ begin
   insert into transactions (owner, montant, motif, item_id)
   values (v_uid, -v_total, 'Achat : ' || v_it.nom || case when v_qte > 1 then ' ×' || v_qte else '' end, v_it.id);
 
-  -- Ajout à la fiche
-  if v_it.categorie = 'arme' then
-    v_data := jsonb_set(v_data, '{armes}', coalesce(v_data -> 'armes', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
-      'nom', v_it.nom, 'stat', v_it.stat, 'deg', v_it.degats, 'eff', v_it.effets, 'src', 'armurerie')));
-  elsif v_it.categorie = 'armure' then
-    v_data := jsonb_set(v_data, '{armures}', coalesce(v_data -> 'armures', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
-      'nom', v_it.nom, 'red', v_it.reduction, 'mal', v_it.malus, 'eff', v_it.effets, 'src', 'armurerie')));
+  -- Ajout à l'inventaire de la fiche (regroupé avec un exemplaire identique non porté)
+  v_objs := coalesce(v_data -> 'possessions', '[]'::jsonb);
+  select (ord - 1)::int into v_idx from jsonb_array_elements(v_objs) with ordinality e(v, ord)
+   where v ->> 'item' = v_it.id::text and coalesce(v ->> 'porte', '') = '' and v ->> 'nom' = v_it.nom limit 1;
+  if v_idx is null then
+    v_objs := v_objs || jsonb_build_array(jsonb_build_object(
+      'id', 'o' || substr(md5(random()::text || clock_timestamp()::text), 1, 12),
+      'item', v_it.id, 'nom', v_it.nom, 'type', v_it.categorie, 'empl', v_it.emplacement, 'qte', v_qte,
+      'stat', case when v_it.categorie = 'arme' then v_it.stat else '' end, 'deg', v_it.degats,
+      'red', v_it.reduction, 'mal', v_it.malus, 'eff', v_it.effets, 'porte', '', 'src', 'armurerie'));
   else
-    v_objs := coalesce(v_data -> 'objets', '[]'::jsonb);
-    select (ord - 1)::int into v_idx from jsonb_array_elements(v_objs) with ordinality e(v, ord) where v ->> 'item' = v_it.id::text limit 1;
-    if v_idx is null then
-      v_objs := v_objs || jsonb_build_array(jsonb_build_object(
-        'item', v_it.id, 'nom', v_it.nom, 'qte', v_qte, 'conso', v_it.categorie = 'consommable', 'eff', v_it.effets, 'src', 'armurerie'));
-    else
-      v_old := v_objs -> v_idx ->> 'qte';
-      v_objs := jsonb_set(v_objs, array[v_idx::text, 'qte'], to_jsonb(case when v_old ~ '^\d+$' then v_old::int else 0 end + v_qte));
-    end if;
-    v_data := jsonb_set(v_data, '{objets}', v_objs);
+    v_old := v_objs -> v_idx ->> 'qte';
+    v_objs := jsonb_set(v_objs, array[v_idx::text, 'qte'], to_jsonb(case when v_old ~ '^\d+$' then v_old::int else 0 end + v_qte));
   end if;
+  v_data := jsonb_set(v_data, '{possessions}', v_objs);
   update characters set data = v_data where owner = v_uid;
 
   return v_solde - v_total;

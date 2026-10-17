@@ -1,6 +1,7 @@
 /* Fiche imprimable (2 pages A4) générée à partir des données du personnage. */
 import { esc } from '../../core/ui.js';
-import { STATS, CLASSES, VOIE, CORPS, COUT, DIFF } from '../../shared/regles.js';
+import { STATS, CLASSES, VOIE, CORPS, COUT, DIFF, CASES } from '../../shared/regles.js';
+import { occupant, sacoche, reductionPortee, malusPorte } from '../../shared/equipement.js';
 import { int, compte, niveau, malusArmure, bonusDegats, maxEffectifs } from '../../shared/personnage.js';
 
 const SIG = '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="14" stroke-dasharray="1.5 2.5"/><path d="M20 5 L33 28 H7 Z"/><path d="M11 20 Q20 12 29 20 Q20 28 11 20 Z"/><circle cx="20" cy="20" r="2.6" fill="currentColor"/></svg>';
@@ -49,12 +50,11 @@ export function ficheImprimable(C) {
   const ent = C.entente.map(e => `<tr><td class="n">${esc(e.nom)}</td><td>${esc(e.a)}</td><td class="note">${String(e.nom || '').trim() ? (e.note || 0) : '___'} / 10</td></tr>`).join('');
   const prog = C.progression.map((p, i) => { const v = VOIE[p.voie]; let c = p.cible || ''; if (v && v.cible === 'partie') { const b = CORPS.find(x => x[0] === c); if (b) c = b[0] + ' · ' + b[1]; } return `<tr><td class="tn" style="width:14mm;color:var(--pg);font-family:var(--f-fell)">Niv. ${i + 2}</td><td>${v ? esc(v.l) : ''}</td><td>${esc(c)}</td></tr>`; }).join('');
   const progBlank = Array.from({ length: Math.max(2, 5 - C.progression.length) }, (_, i) => `<tr><td class="tn" style="width:14mm;color:var(--pg);font-family:var(--f-fell)">Niv. ${C.progression.length + i + 2}</td><td></td><td></td></tr>`).join('');
-  const armes = C.armes.filter(a => String(a.nom || '').trim());
-  const armures = C.armures.filter(a => String(a.nom || '').trim());
-  const arm = armes.map(a => { const b = bonusDegats(int(C.stats[a.stat])); return `<tr><td>${esc(a.nom)}</td><td>${esc(a.stat)}</td><td>${esc(a.deg)}${b ? ` +${b}` : ''}</td><td>${esc(a.eff)}</td></tr>`; }).join('');
-  const amr = armures.map(a => `<tr><td>${esc(a.nom)}</td><td class="tn">${esc(a.red)}</td><td class="tn">${esc(a.mal)}</td><td>${esc(a.eff)}</td></tr>`).join('');
-  const objs = (C.objets || []).filter(o => String(o.nom || '').trim());
-  const objets = objs.map(o => `<tr><td>${esc(o.nom)}${o.eff ? ` <small style="color:var(--ps)">· ${esc(o.eff)}</small>` : ''}</td><td class="tn" style="width:10mm;text-align:right">${esc(o.qte ?? '')}</td></tr>`).join('');
+  const caract = o => { const p = []; if (o.deg) { const b = bonusDegats(int(C.stats[o.stat])); p.push(`${esc(o.stat)} ${esc(o.deg)}${b ? ' +' + b : ''}`); } if (int(o.red)) p.push('Réd. ' + esc(o.red)); if (int(o.mal)) p.push('DEX −' + Math.abs(int(o.mal))); return p.join(' · '); };
+  const equipRows = CASES.map(c => { const o = occupant(C, c.k); if (c.k === 'main_g' && o && o.porte === 'deux_mains') return ''; const lab = o && o.porte === 'deux_mains' ? 'Deux mains' : c.l;
+    return `<tr><td class="lb" style="width:26mm">${lab.toUpperCase()}</td><td>${o ? esc(o.nom) : ''}</td><td style="width:34mm">${o ? caract(o) : ''}</td><td><small>${o ? esc(o.eff) : ''}</small></td></tr>`; }).join('');
+  const inv = sacoche(C).filter(o => String(o.nom || '').trim());
+  const objets = inv.map(o => `<tr><td>${esc(o.nom)}${o.eff ? ` <small style="color:var(--ps)">· ${esc(o.eff)}</small>` : ''}</td><td class="tn" style="width:10mm;text-align:right">${esc(o.qte ?? '')}</td></tr>`).join('');
   const blankRows = (n, c) => Array.from({ length: n }, () => `<tr>${'<td></td>'.repeat(c)}</tr>`).join('');
   const foot = p => `<div class="ps-foot"><span>AYESHA · FICHE DE PERSONNAGE</span><span>${esc((C.nom || '').toUpperCase())}${C.nom ? ' · ' : ''}${p} / 2</span></div>`;
 
@@ -77,11 +77,10 @@ export function ficheImprimable(C) {
   </section>
   <section class="ps" aria-label="Fiche imprimable, page 2">
     <div class="sec" style="margin-top:0"><h3>Progression<small>UNE VOIE PAR NIVEAU</small></h3><table><tbody>${prog}${progBlank}</tbody></table></div>
-    <div class="sec"><h3>Armes<small>NOM / STAT / DÉGÂTS / EFFETS</small></h3><table><thead><tr><th>Arme</th><th style="width:12mm">Stat</th><th style="width:22mm">Dégâts</th><th>Effets</th></tr></thead><tbody>${arm}${blankRows(Math.max(2, 4 - armes.length), 4)}</tbody></table></div>
-    <div class="sec"><h3>Armures<small>RÉDUCTION / MALUS DEX / EFFETS</small></h3><table><thead><tr><th>Armure</th><th style="width:18mm">Réduction</th><th style="width:18mm">Malus DEX</th><th>Effets</th></tr></thead><tbody>${amr}${blankRows(Math.max(1, 2 - armures.length), 4)}</tbody></table></div>
+    <div class="sec"><h3>Équipement porté<small>RÉDUCTION TOTALE ${reductionPortee(C)} · MALUS DEX ${malusPorte(C) ? '−' + malusPorte(C) : '0'}</small></h3><table><tbody>${equipRows}</tbody></table></div>
     <div class="two">
-      <div class="sec"><h3>Objets &amp; consommables<small>QTÉ</small></h3><table class="ps-obj"><tbody>${objets}${blankRows(Math.max(2, 6 - objs.length), 2)}</tbody></table></div>
-      <div class="sec"><h3>Inventaire</h3>${psText(C.inventaire)}</div>
+      <div class="sec"><h3>Inventaire<small>QTÉ</small></h3><table class="ps-obj"><tbody>${objets}${blankRows(Math.max(2, 7 - inv.length), 2)}</tbody></table></div>
+      <div class="sec"><h3>Autres affaires</h3>${psText(C.inventaire)}</div>
     </div>
     <div class="two">
       <div class="sec"><h3>Apparence</h3>${psText(C.apparence)}</div>

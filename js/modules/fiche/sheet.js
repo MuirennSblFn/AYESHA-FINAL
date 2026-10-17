@@ -11,7 +11,8 @@
    (caractéristiques, chance, maximums de PV / PM / SM, valeurs actuelles).
    ===================================================================== */
 import { $, $$, esc, toast, modal, confirmer } from '../../core/ui.js';
-import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6 } from '../../shared/regles.js';
+import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6, EMPLACEMENTS, EMPL_PAR_TYPE, CASES, TYPES_OBJET } from '../../shared/regles.js';
+import { occupant, sacoche, estEquipable, equiper, ranger, utiliser, reductionPortee, malusPorte, nouvelId } from '../../shared/equipement.js';
 import { int, compte, niveau, malusArmure, bonusDegats, maxCalcules, maxEffectifs, actuel, formule } from '../../shared/personnage.js';
 
 export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} } = {}) {
@@ -83,30 +84,65 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   }
 
   /* ---------- Équipement ---------- */
-  function gearHTML() {
-    const statSel = (i, v) => `<select class="sel" id="f-arm-stat-${i}" data-k="armes.${i}.stat" aria-label="Statistique testée">${STATS.map(s => `<option ${v === s.k ? 'selected' : ''}>${s.k}</option>`).join('')}</select>`;
-    const arm = C.armes.map((a, i) => `<tr><td><input class="in" id="f-arm-n-${i}" data-k="armes.${i}.nom" value="${esc(a.nom)}" placeholder="Dague de Sombris" aria-label="Arme"></td><td style="width:6em">${statSel(i, a.stat)}</td><td style="width:6.5em"><input class="in" id="f-arm-d-${i}" data-k="armes.${i}.deg" value="${esc(a.deg)}" placeholder="1d6" aria-label="Dégâts"></td><td style="width:4em" class="num" data-armbonus="${i}"></td><td><input class="in" id="f-arm-e-${i}" data-k="armes.${i}.eff" value="${esc(a.eff)}" placeholder="—" aria-label="Effets"></td><td class="edit-only"><button class="x" data-del="armes.${i}" aria-label="Retirer">×</button></td></tr>`).join('');
-    const amr = C.armures.map((a, i) => `<tr><td><input class="in" id="f-amr-n-${i}" data-k="armures.${i}.nom" value="${esc(a.nom)}" placeholder="Blouson renforcé" aria-label="Armure"></td><td style="width:6em"><input class="in num" id="f-amr-r-${i}" data-k="armures.${i}.red" value="${esc(a.red)}" placeholder="2" aria-label="Réduction"></td><td style="width:6.5em"><input class="in num" id="f-amr-m-${i}" data-k="armures.${i}.mal" value="${esc(a.mal)}" placeholder="-5" aria-label="Malus DEX"></td><td><input class="in" id="f-amr-e-${i}" data-k="armures.${i}.eff" value="${esc(a.eff)}" placeholder="—" aria-label="Effets"></td><td class="edit-only"><button class="x" data-del="armures.${i}" aria-label="Retirer">×</button></td></tr>`).join('');
-    return `<div class="scroll"><table class="gear"><thead><tr><th>Arme</th><th>Stat</th><th>Dégâts</th><th>Bonus</th><th>Effets</th><th class="edit-only"></th></tr></thead><tbody>${arm || '<tr><td colspan="5" class="none">Aucune arme.</td></tr>'}</tbody></table></div>
-      <button class="add edit-only" data-addrow="armes">＋ Ajouter une arme</button>
-      <div class="scroll" style="margin-top:16px"><table class="gear"><thead><tr><th>Armure</th><th>Réduction</th><th>Malus DEX</th><th>Effets</th><th class="edit-only"></th></tr></thead><tbody>${amr || '<tr><td colspan="4" class="none">Aucune armure.</td></tr>'}</tbody></table></div>
-      <button class="add edit-only" data-addrow="armures">＋ Ajouter une armure</button>`;
+  /* ---------- Équipement porté (emplacements) ---------- */
+  const resume = o => {
+    const p = [];
+    if (o.type === 'arme' || o.deg) { if (o.stat) p.push(esc(o.stat)); if (o.deg) { const b = bonusDegats(int(C.stats[o.stat])); p.push(esc(o.deg) + (b ? ` <b>+${b}</b>` : '')); } }
+    if (int(o.red)) p.push(`Réd. ${esc(o.red)}`);
+    if (int(o.mal)) p.push(`DEX −${Math.abs(int(o.mal))}`);
+    return p.join(' · ');
+  };
+  function equipHTML() {
+    const cartes = CASES.map(c => {
+      const o = occupant(C, c.k);
+      if (c.k === 'main_g' && o && o.porte === 'deux_mains') return '';
+      const deux = o && o.porte === 'deux_mains';
+      return `<div class="case${o ? '' : ' vide'}${deux ? ' deux' : ''}${c.k.startsWith('main') ? ' arme' : ''}">
+        <div class="cl">${deux ? 'Deux mains' : c.l}</div>
+        ${o ? `<div class="cn">${esc(o.nom || 'Objet sans nom')}</div>${resume(o) ? `<div class="cs">${resume(o)}</div>` : ''}${o.eff ? `<div class="ce">${esc(o.eff)}</div>` : ''}
+          <button class="mini ranger" data-ranger="${esc(o.id)}" title="Remettre dans l'inventaire">Ranger</button>` : '<div class="cn none">—</div>'}
+      </div>`;
+    }).join('');
+    const red = reductionPortee(C), mal = malusPorte(C), dex = int(C.stats.DEX);
+    return `<div class="cases">${cartes}</div>
+      <div class="totaux"><span>Réduction totale <b>${red}</b></span><span>Malus DEX <b>${mal ? '−' + mal : '0'}</b></span>${dex != null ? `<span>DEX en armure <b>${dex - mal}</b></span>` : ''}</div>`;
   }
-  /* ---------- Objets & consommables ---------- */
-  const qteDe = o => { const n = int(o.qte); return n == null ? 0 : n; };
-  function objetsHTML() {
-    const rows = C.objets.map((o, i) => `<tr class="${o.conso ? 'conso' : ''}">
-      <td><input class="in" id="f-obj-n-${i}" data-k="objets.${i}.nom" value="${esc(o.nom)}" placeholder="${o.conso ? 'Trousse de soin' : 'Lampe UV'}" aria-label="Objet">${o.conso ? '<span class="otag">consommable</span>' : ''}</td>
-      <td style="width:4.5em"><input class="in num oq" id="f-obj-q-${i}" data-k="objets.${i}.qte" inputmode="numeric" value="${esc(o.qte ?? '')}" placeholder="1" aria-label="Quantité"></td>
-      <td><input class="in" id="f-obj-e-${i}" data-k="objets.${i}.eff" value="${esc(o.eff)}" placeholder="—" aria-label="Effets"></td>
-      <td class="ouse">${o.conso ? `<button class="mini use" data-use="${i}" ${qteDe(o) < 1 ? 'disabled' : ''} title="Retire 1 de la quantité">Utiliser</button>` : ''}</td>
-      <td class="edit-only"><button class="x" data-del="objets.${i}" aria-label="Retirer">×</button></td></tr>`).join('');
-    return `<div class="scroll"><table class="gear objets"><thead><tr><th>Objet</th><th>Qté</th><th>Effets</th><th></th><th class="edit-only"></th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="none">Aucun objet. Les achats de l’armurerie arrivent ici.</td></tr>'}</tbody></table></div>
-      <button class="add edit-only" data-addrow="conso">＋ Ajouter un consommable</button> <button class="add edit-only" data-addrow="objet">＋ Ajouter un objet</button>`;
-  }
-  const renderObjets = () => { q('#objets').innerHTML = objetsHTML(); verrouiller(); };
 
-  function armBonus(i) { const a = C.armes[i]; if (!a) return ''; const b = bonusDegats(int(C.stats[a.stat])); return b ? `+${b}` : ''; }
+  /* ---------- Inventaire ---------- */
+  const qteDe = o => { const n = int(o.qte); return n == null ? 0 : n; };
+  function possHTML(o) {
+    const id = esc(o.id), pk = f => `data-pk="${id}.${f}"`;
+    const empls = EMPL_PAR_TYPE[o.type] || [''];
+    const emplOpts = [...new Set([...empls, o.empl || ''])].map(e => `<option value="${e}" ${o.empl === e ? 'selected' : ''}>${e ? EMPLACEMENTS[e]?.l || e : 'Ne s’équipe pas'}</option>`).join('');
+    const det = o.type === 'arme'
+      ? `<label class="pf">Stat <select class="sel" ${pk('stat')}>${STATS.map(s => `<option ${o.stat === s.k ? 'selected' : ''}>${s.k}</option>`).join('')}</select></label><label class="pf">Dégâts <input class="in" ${pk('deg')} value="${esc(o.deg)}" placeholder="1d6"></label>`
+      : o.type === 'armure' ? `<label class="pf">Réd. <input class="in num" ${pk('red')} value="${esc(o.red)}" placeholder="0"></label><label class="pf">Malus DEX <input class="in num" ${pk('mal')} value="${esc(o.mal)}" placeholder="0"></label>` : '';
+    return `<div class="poss t-${esc(o.type)}" data-poss="${id}">
+      <div class="pl1">
+        <input class="in pn" id="f-poss-${id}" ${pk('nom')} value="${esc(o.nom)}" placeholder="Nom de l’objet" aria-label="Objet">
+        <span class="pq">×<input class="in num" ${pk('qte')} value="${esc(o.qte)}" inputmode="numeric" aria-label="Quantité"></span>
+        <span class="pact">
+          ${estEquipable(o) ? `<button class="mini equip" data-equiper="${id}" title="${esc(EMPLACEMENTS[o.empl]?.l || '')}">Équiper</button>` : ''}
+          ${o.type === 'consommable' ? `<button class="mini use" data-use="${id}" ${qteDe(o) < 1 ? 'disabled' : ''} title="Retire 1 de la quantité">Utiliser</button>` : ''}
+          <button class="x edit-only" data-delposs="${id}" aria-label="Jeter">×</button>
+        </span>
+      </div>
+      <div class="pl2 edit-only">
+        <select class="sel" ${pk('type')} data-rerender-inv="1" aria-label="Type">${Object.entries(TYPES_OBJET).map(([k, l]) => `<option value="${k}" ${o.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <select class="sel" ${pk('empl')} data-rerender-inv="1" aria-label="Emplacement">${emplOpts}</select>
+        ${det}
+        <input class="in eff" ${pk('eff')} value="${esc(o.eff)}" placeholder="Effets" aria-label="Effets">
+      </div>
+      <div class="psum">${[TYPES_OBJET[o.type], o.empl ? EMPLACEMENTS[o.empl]?.court : '', resume(o), esc(o.eff)].filter(Boolean).join(' · ')}</div>
+    </div>`;
+  }
+  function inventaireHTML() {
+    const l = sacoche(C);
+    return `<div class="invlist">${l.map(possHTML).join('') || '<p class="none" style="margin:0">L’inventaire est vide. Les achats de l’armurerie arrivent ici.</p>'}</div>
+      <button class="add edit-only" data-addposs="arme">＋ Arme</button> <button class="add edit-only" data-addposs="armure">＋ Armure</button> <button class="add edit-only" data-addposs="consommable">＋ Consommable</button> <button class="add edit-only" data-addposs="equipement">＋ Objet</button>`;
+  }
+  const renderStatsMeta = () => STATS.forEach(s => { const m = q(`[data-meta="${s.k}"]`); if (m) m.innerHTML = statMeta(s.k); });
+  const renderEquip = () => { q('#equip').innerHTML = equipHTML(); q('#inv').innerHTML = inventaireHTML(); verrouiller(); renderStatsMeta(); };
 
   /* ---------- Classe ---------- */
   const classPicker = () => `<div class="classes" role="radiogroup" aria-label="Classe">${Object.entries(CLASSES).map(([k, o]) => `<button class="cls" role="radio" data-classe="${k}" aria-pressed="${C.classe === k}" aria-checked="${C.classe === k}"><b>${o.nom}</b><small>${o.desc}</small></button>`).join('')}</div>`;
@@ -199,7 +235,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     qq('[data-joker]').forEach(b => b.disabled = C.joker || !C.rolls[b.dataset.joker]);
     q('#jokerstate').textContent = C.joker ? 'Joker utilisé' : 'Joker disponible : une relance';
     renderGauges();
-    qq('[data-armbonus]').forEach(td => td.textContent = armBonus(+td.dataset.armbonus));
+    const eq = q('#equip'); if (eq) eq.innerHTML = equipHTML();
     q('#ent-avg').innerHTML = ententeAvg();
     renderClassComputed();
   }
@@ -249,12 +285,12 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       <div id="class-picker"></div><div class="frame"><div id="class-body"></div><div id="class-prog"></div></div>
     </section>
 
-    <section class="block"><h2>Armes &amp; armures <span class="sub">les armes à feu ne blessent pas les créatures de la Brume</span></h2><div id="gear">${gearHTML()}</div></section>
+    <section class="block"><h2>Équipement porté <span class="sub">un objet par emplacement · les armes à feu ne blessent pas les créatures de la Brume</span></h2><div id="equip">${equipHTML()}</div></section>
 
-    <section class="block"><h2>Objets &amp; consommables <span class="sub">achetés à l'armurerie ou ajoutés à la main</span></h2><div id="objets">${objetsHTML()}</div></section>
+    <section class="block"><h2>Inventaire <span class="sub">ce que le personnage possède sans le porter</span></h2><div id="inv">${inventaireHTML()}</div></section>
 
     <div class="cols">
-      <section class="block"><h2>Inventaire</h2><textarea class="ta" id="f-inv" data-k="inventaire" rows="6" placeholder="Sac à dos, poches, voiture… et les artefacts de l'armurerie.">${esc(C.inventaire)}</textarea></section>
+      <section class="block"><h2>Autres affaires <span class="sub">notes libres</span></h2><textarea class="ta" id="f-inv" data-k="inventaire" rows="6" placeholder="Voiture, planque, argent liquide, objets sans importance…">${esc(C.inventaire)}</textarea></section>
       <section class="block"><h2>Apparence <span class="sub">quelques mots suffisent</span></h2><textarea class="ta" id="f-app" data-k="apparence" rows="6" placeholder="Nuage de mots ou quelques phrases.">${esc(C.apparence)}</textarea></section>
     </div>
     <section class="block"><h2>Histoire <span class="sub">origines, parents, goûts, études, découverte de la magie</span></h2><textarea class="ta" id="f-hist" data-k="histoire" rows="8" placeholder="D'où vient le personnage, comment il est arrivé dans les études supérieures ou la vie active, et comment il a découvert la magie.">${esc(C.histoire)}</textarea></section>`;
@@ -289,10 +325,14 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       setPath(C, t.dataset.k, t.value);
       if (/^stats\./.test(t.dataset.k)) { const k = t.dataset.k.slice(6); delete C.rolls[k]; const d = q('[data-dice="' + k + '"]'); if (d) d.textContent = ''; }
       if (t.dataset.k === 'chance') { C.chanceRoll = null; }
-      if (/^objets\.\d+\.qte$/.test(t.dataset.k)) { const b = t.closest('tr')?.querySelector('[data-use]'); if (b) b.disabled = (int(t.value) || 0) < 1; }
       persist();
       if (/^mots\./.test(t.dataset.k)) renderSpell();
       renderDerived();
+    }
+    if (t.dataset.pk) {
+      const [id, f] = t.dataset.pk.split('.'); const o = C.possessions.find(x => x.id === id); if (!o) return;
+      o[f] = t.value; persist();
+      if (f === 'qte') { const b = t.closest('.poss')?.querySelector('[data-use]'); if (b) b.disabled = (int(t.value) || 0) < 1; }
     }
     if (t.dataset.max) {
       const k = t.dataset.max, v = t.value.trim();
@@ -311,6 +351,11 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     if (t.dataset.max) { // revenir au calcul si la valeur saisie est identique au calcul
       const k = t.dataset.max; if (int(C.max[k]) != null && int(C.max[k]) === maxCalcules(C)[k]) { C.max[k] = ''; persist(); }
       renderGauges();
+    }
+    if (t.dataset.rerenderInv) {
+      const [id] = t.dataset.pk.split('.'); const o = C.possessions.find(x => x.id === id);
+      if (o && t.dataset.pk.endsWith('.type') && !(EMPL_PAR_TYPE[o.type] || ['']).includes(o.empl)) { o.empl = (EMPL_PAR_TYPE[o.type] || [''])[0]; persist(); }
+      renderEquip(); return;
     }
     if (t.dataset.rerender) { renderClass(); renderDerived(); }
     if (t.dataset.sac !== undefined) { const i = +t.dataset.sac; C.sac[i] = t.value === '__autre' ? (C.sac[i] && !SAC[i].includes(C.sac[i]) ? C.sac[i] : 'Objet échangé') : t.value; persist(); renderClass(); if (t.value === '__autre') { const x = q('#f-sacx-' + i); x && x.select(); } }
@@ -332,23 +377,38 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       if (C.progression.length && !await confirmer({ titre: 'Changer de classe ?', texte: `Les ${C.progression.length} niveaux de progression déjà choisis seront effacés.`, oui: `Changer pour ${CLASSES[k].nom}` })) return;
       C.classe = k; C.progression = []; persist(); renderClass(); renderDerived(); syncClassName(); return;
     }
-    if (t.dataset.use !== undefined) {   // fonctionne aussi en mode lecture, pendant la partie
-      const o = C.objets[+t.dataset.use]; if (!o) return;
-      const n = qteDe(o) - 1;
-      if (n <= 0) { C.objets.splice(+t.dataset.use, 1); toast(`${o.nom || 'Objet'} : épuisé, retiré de la fiche`); }
-      else { o.qte = n; toast(`${o.nom || 'Objet'} utilisé · reste ${n}`); }
-      persist(); renderObjets(); return;
+    if (t.dataset.use) {   // ces actions marchent aussi en mode lecture, pendant la partie
+      const o = C.possessions.find(x => x.id === t.dataset.use); if (!o) return;
+      const reste = utiliser(C, o.id);
+      toast(reste ? `${o.nom || 'Objet'} utilisé · reste ${reste}` : `${o.nom || 'Objet'} : épuisé, retiré de l’inventaire`);
+      persist(); renderEquip(); return;
+    }
+    if (t.dataset.equiper) {
+      const o = C.possessions.find(x => x.id === t.dataset.equiper);
+      const renvoyes = equiper(C, t.dataset.equiper);
+      persist(); renderEquip();
+      toast(`${o?.nom || 'Objet'} équipé${renvoyes.length ? ' · ' + renvoyes.join(', ') + ' rangé' + (renvoyes.length > 1 ? 's' : '') + ' dans l’inventaire' : ''}`);
+      return;
+    }
+    if (t.dataset.ranger) { ranger(C, t.dataset.ranger); persist(); renderEquip(); return; }
+    if (t.dataset.addposs) {
+      const type = t.dataset.addposs;
+      const o = { id: nouvelId(), nom: '', type, empl: (EMPL_PAR_TYPE[type] || [''])[0], qte: 1, stat: type === 'arme' ? 'FOR' : '', deg: '', red: '', mal: '', eff: '', porte: '' };
+      C.possessions.push(o); persist(); renderEquip(); const n = q(`#f-poss-${o.id}`); n && n.focus(); return;
+    }
+    if (t.dataset.delposs) {
+      const o = C.possessions.find(x => x.id === t.dataset.delposs); if (!o) return;
+      if (o.src === 'armurerie' && !await confirmer({ titre: `Jeter « ${esc(o.nom)} » ?`, texte: 'Cet objet a été acheté à l’armurerie. Il ne sera pas remboursé.', oui: 'Jeter', danger: true })) return;
+      C.possessions.splice(C.possessions.indexOf(o), 1); persist(); renderEquip(); return;
     }
     if (t.dataset.addrow) {
       const k = t.dataset.addrow;
-      if (k === 'conso' || k === 'objet') { C.objets.push({ nom: '', qte: 1, eff: '', conso: k === 'conso' }); persist(); renderObjets(); const n = q(`#f-obj-n-${C.objets.length - 1}`); n && n.focus(); return; }
-      const row = { armes: { nom: '', stat: 'FOR', deg: '', eff: '' }, armures: { nom: '', red: '', mal: '', eff: '' }, mots: { mot: '', sens: '' } }[k];
-      C[k].push(row); persist(); if (k === 'mots') renderClass(); else q('#gear').innerHTML = gearHTML(); renderDerived(); return;
+      const row = { mots: { mot: '', sens: '' } }[k]; if (!row) return;
+      C[k].push(row); persist(); renderClass(); renderDerived(); return;
     }
     if (t.dataset.del) {
       const [k, i] = t.dataset.del.split('.'); C[k].splice(+i, 1); persist();
-      if (k === 'objets') { renderObjets(); return; }
-      if (k === 'armes' || k === 'armures') q('#gear').innerHTML = gearHTML(); else renderClass(); renderDerived(); return;
+      renderClass(); renderDerived(); return;
     }
     if (t.id === 'portrait') { if (!reading) q('#file-portrait').click(); return; }
     if (t.id === 'rmportrait') { C.portrait = ''; persist(); renderPortrait(); return; }

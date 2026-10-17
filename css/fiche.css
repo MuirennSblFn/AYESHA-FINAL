@@ -320,3 +320,46 @@
 .fichewrap table.objets .use:hover{background:color-mix(in srgb,var(--vert) 12%,transparent)}
 .fichewrap .add+.add{margin-left:6px}
 .fichewrap.reading table.objets .oq{pointer-events:none}
+
+/* Équipement porté : une case par emplacement */
+.fichewrap .cases{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.fichewrap .case{border:1px solid var(--rule);background:var(--page);padding:8px 10px 8px;display:flex;flex-direction:column;gap:2px;min-height:76px;position:relative}
+.fichewrap .case.arme{border-top:2px solid var(--sang)}
+.fichewrap .case.deux{grid-column:span 2}
+.fichewrap .case.vide{background:transparent;border-style:dashed}
+.fichewrap .case .cl{font-family:var(--f-label);font-size:.66rem;letter-spacing:.14em;font-weight:700;color:var(--ink-soft);text-transform:uppercase}
+.fichewrap .case .cn{font-family:var(--f-fell);font-size:1.08rem;line-height:1.2;padding-right:3.6em}
+.fichewrap .case .cn.none{color:var(--ink-faint)}
+.fichewrap .case .cs{font-family:var(--f-label);font-size:.74rem;letter-spacing:.04em;color:var(--ink-soft)}
+.fichewrap .case .cs b{color:var(--gilt)}
+.fichewrap .case .ce{font-size:.82rem;font-style:italic;color:var(--ink-soft);line-height:1.3}
+.fichewrap .case .ranger{position:absolute;top:6px;right:6px}
+.fichewrap .totaux{display:flex;flex-wrap:wrap;gap:6px 26px;margin-top:10px;padding-top:8px;border-top:1px dotted var(--rule);font-family:var(--f-label);font-size:.78rem;letter-spacing:.08em;color:var(--ink-soft)}
+.fichewrap .totaux b{font-family:var(--f-fell);font-size:1.25rem;letter-spacing:0;color:var(--ink);font-weight:400;margin-left:4px}
+
+/* Inventaire */
+.fichewrap .invlist{display:flex;flex-direction:column}
+.fichewrap .poss{padding:7px 0;border-bottom:1px dotted var(--rule)}
+.fichewrap .poss .pl1{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:end}
+.fichewrap .poss .pn{font-family:var(--f-fell);font-size:1.05rem}
+.fichewrap .poss .pq{display:inline-flex;align-items:baseline;gap:2px;color:var(--ink-soft);font-family:var(--f-fell)}
+.fichewrap .poss .pq .in{width:2.6em;text-align:center}
+.fichewrap .poss .pact{display:inline-flex;gap:4px;align-items:center}
+.fichewrap .poss .pl2{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:4px;font-size:.88rem}
+.fichewrap .poss .pl2 .sel,.fichewrap .poss .pl2 .in{width:auto;min-width:5.5em;font-size:.88rem;padding:2px}
+.fichewrap .poss .pl2 .in.eff{flex:1;min-width:12em}
+.fichewrap .poss .psum{display:none;font-size:.84rem;color:var(--ink-soft);font-style:italic;margin-top:2px}
+.fichewrap.reading .poss .psum{display:block}
+.fichewrap .equip{color:var(--gilt);border-color:color-mix(in srgb,var(--gilt) 50%,var(--rule))}
+.fichewrap .use{color:var(--vert);border-color:color-mix(in srgb,var(--vert) 50%,var(--rule))}
+.fichewrap .poss.t-arme .pn{border-left:2px solid var(--sang);padding-left:6px}
+.fichewrap .poss.t-armure .pn{border-left:2px solid var(--azur);padding-left:6px}
+.fichewrap .poss.t-consommable .pn{border-left:2px solid var(--vert);padding-left:6px}
+.fichewrap.readonly .ranger,.fichewrap.readonly .pact button{display:none}
+@media (max-width:860px){
+  .fichewrap .cases{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fichewrap .poss .pl1{grid-template-columns:minmax(0,1fr) auto}
+  .fichewrap .poss .pact{grid-column:1/-1;justify-content:flex-end}
+}
+.fichewrap .poss .pf{display:inline-flex;align-items:baseline;gap:4px;font-family:var(--f-label);font-size:.7rem;letter-spacing:.08em;color:var(--ink-soft);font-weight:700}
+.fichewrap .poss .pf .in,.fichewrap .poss .pf .sel{min-width:3.6em;width:4.2em;font-family:var(--f-body);letter-spacing:0;font-weight:400}

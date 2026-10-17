@@ -106,3 +106,4 @@ table.cat tr.masque td:nth-child(3){opacity:1}
 .reldet summary::-webkit-details-marker{display:none}
 .reldet summary::after{content:"▾";font-size:.8rem;transition:transform .15s}
 .reldet:not([open]) summary::after{transform:rotate(-90deg)}
+.carac .empl{font-weight:700;color:var(--gilt);letter-spacing:.06em}
