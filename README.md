@@ -84,6 +84,13 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 - *Composer un sort* : cliquer les mots dans l'ordre (et un nom propre si besoin) ; l'incantation s'écrit avec les liaisons (*nil*, *en*, *om*, *eht*), avec coût, seuil, bonus, alerte si le sort n'a pas de verbe, et bouton « Copier ».
 - Import initial : `supabase/lexique.sql` (148 mots de la feuille 3 du classeur), à lancer après `schema.sql`.
 
+**Sorcier** :
+- Une silhouette du corps montre les 14 parties (dont les deux yeux) avec leur valeur et leur état : intacte, sacrifiée temporairement (valeur divisée par deux), perdue (✕).
+- Toucher une partie affiche sa valeur, son bonus de progression et la conséquence d'une perte définitive ; on peut la préparer pour un sacrifice (temporaire ou définitif).
+- La préparation additionne les sacrifices, et avec le seuil fixé par le MJ indique le résultat à faire au d12 et la probabilité de réussite (le jet reste aux dés physiques). « Sacrifier » applique les états et retire 2 PV par sacrifice temporaire.
+- « Minuit » récupère les parties sacrifiées temporairement et restaure les points de magie.
+- Les pertes définitives s'appliquent : malus de caractéristiques, PV ou SM maximum réduits, emplacements d'équipement inutilisables (l'équipement concerné est rangé). Les règles sont dans `PERTES` (js/shared/regles.js), modifiables.
+
 **Sauvegarde** : automatique, en ligne. L'état est affiché au-dessus de la fiche. En cas de coupure, une copie reste sur l'appareil et l'envoi reprend tout seul. Si la fiche a été modifiée entre-temps depuis un autre appareil, le site demande quelle version garder.
 
 ---
@@ -98,6 +105,7 @@ css/grimoire.css         styles du module Grimoire
 css/fiche.css            styles de la fiche, de La table et de l'impression
 css/armurerie.css        styles de l'armurerie
 css/lexique.css          styles du lexique et des outils du Magicien
+css/sorcier.css          silhouette du Sorcier et préparation des sacrifices
 js/config.js             adresse et clé publique Supabase
 js/core/                 socle : connexion (auth.js), routeur (router.js), outils (ui.js)
 js/shared/regles.js      règles d'Ayesha (caractéristiques, classes, sac, sorts…)
@@ -107,7 +115,7 @@ js/shared/equipement.js  inventaire, emplacements, équiper / ranger / utiliser,
 js/shared/lexique.js     lexique de l'ancien langage (lecture, recherche, gestion MJ)
 js/modules/index.js      LISTE DES MODULES (c'est ici qu'on en ajoute)
 js/modules/*.js          accueil, grimoire, lexique, armurerie, table (MJ)
-js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), index.js (page)
+js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), corps.js (silhouette), index.js (page)
 supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), maintien en éveil
 vendor/                  bibliothèque Supabase (version figée, pas de dépendance à un CDN)
 ```

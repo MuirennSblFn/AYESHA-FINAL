@@ -11,7 +11,7 @@
    ===================================================================== */
 import { sb } from '../core/supabase.js';
 import { auth } from '../core/auth.js';
-import { STATS, VOIE } from './regles.js';
+import { STATS, VOIE, PERTES } from './regles.js';
 import { migrerEquipement, malusPorte } from './equipement.js';
 
 export const FORMAT = 'ayesha-fiche-v1';
@@ -48,7 +48,20 @@ export function normaliser(c) {
 }
 
 /* ---------- Calculs ---------- */
-export const brut = (C, k) => { const n = int(C.stats[k]); return n == null ? null : Math.floor(n / 5); };
+/* Pertes définitives du Sorcier : malus cumulés sur les caractéristiques et les maximums */
+export function pertesCorps(C) {
+  const r = { stats: {}, pv: 0, sm: 0, zones: [] };
+  Object.entries(C.corps || {}).forEach(([k, v]) => {
+    if (!v || v.etat !== 'def' || !PERTES[k]) return;
+    const p = PERTES[k]; r.zones.push(k);
+    Object.entries(p.stats || {}).forEach(([s, m]) => r.stats[s] = (r.stats[s] || 0) + m);
+    r.pv += p.pv || 0; r.sm += p.sm || 0;
+  });
+  return r;
+}
+/* Caractéristique après les pertes (la valeur saisie reste intacte sur la fiche) */
+export const statEff = (C, k) => { const n = int(C.stats[k]); if (n == null) return null; const m = pertesCorps(C).stats[k] || 0; return m ? Math.max(1, n + m) : n; };
+export const brut = (C, k) => { const n = statEff(C, k); return n == null ? null : Math.floor(n / 5); };
 export const compte = (C, v) => C.progression.filter(p => p.voie === v && VOIE[v] && VOIE[v].classe === C.classe).length;
 export const niveau = C => 1 + C.progression.length;
 export const malusArmure = C => malusPorte(C);
@@ -59,9 +72,9 @@ export function maxCalcules(C) {
   const F = brut(C, 'FOR'), I = brut(C, 'INT'), P = brut(C, 'PER');
   const ip = (I != null && P != null) ? Math.floor((I + P) / 2) : null;
   return {
-    pv: F != null ? F + 5 + (C.classe === 'sorcier' ? 3 * compte(C, 'pv') : 0) : null,
+    pv: F != null ? Math.max(1, F + 5 + (C.classe === 'sorcier' ? 3 * compte(C, 'pv') : 0) + pertesCorps(C).pv) : null,
     pm: ip != null ? ip + 10 + (C.classe === 'magicien' ? 3 * compte(C, 'pm') : 0) : null,
-    sm: ip,
+    sm: ip != null ? Math.max(0, ip + pertesCorps(C).sm) : null,
     ch: int(C.chance),
   };
 }

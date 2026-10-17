@@ -12,14 +12,16 @@
    ===================================================================== */
 import { $, $$, esc, toast, modal, confirmer, copyText } from '../../core/ui.js';
 import { lexique, chercher } from '../../shared/lexique.js';
-import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6, EMPLACEMENTS, EMPL_PAR_TYPE, CASES, TYPES_OBJET, CATEGORIES_MOT, GRAMMAIRE, incantation } from '../../shared/regles.js';
-import { occupant, sacoche, estEquipable, equiper, ranger, utiliser, reductionPortee, malusPorte, nouvelId } from '../../shared/equipement.js';
-import { int, compte, niveau, malusArmure, bonusDegats, maxCalcules, maxEffectifs, actuel, formule } from '../../shared/personnage.js';
+import { silhouetteSVG, infoZoneDe } from './corps.js';
+import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6, EMPLACEMENTS, EMPL_PAR_TYPE, CASES, TYPES_OBJET, CATEGORIES_MOT, GRAMMAIRE, incantation, ZONES_CORPS, PERTES, COUT_PV_SACRIFICE_TEMP } from '../../shared/regles.js';
+import { occupant, sacoche, estEquipable, equiper, ranger, utiliser, reductionPortee, malusPorte, nouvelId, casesBloquees, refusEquiper, rangerBloques } from '../../shared/equipement.js';
+import { int, compte, niveau, malusArmure, bonusDegats, maxCalcules, maxEffectifs, actuel, formule, statEff, pertesCorps } from '../../shared/personnage.js';
 
 export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} } = {}) {
   let reading = lectureSeule;
   let seq = [];                 // mots du sort en cours de composition
-  let LEX = null, lexQ = '';     // lexique de l'ancien langage (chargé à la demande)
+  let LEX = null, lexQ = '';
+  let zoneActive = null, prepa = {};   // Sorcier : zone affichée, sacrifice en préparation { zone: 'temp' | 'def' }     // lexique de l'ancien langage (chargé à la demande)
   const q = s => $(s, root), qq = s => $$(s, root);
   const persist = () => { if (!lectureSeule) onChange(C); };
 
@@ -45,8 +47,10 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   function statMeta(k) {
     const n = int(C.stats[k]); if (n == null) return '<span>&nbsp;</span>';
     const parts = [`<span>origine <b>${Math.floor(n / 5)}</b></span>`];
-    const b = bonusDegats(n); if (b) parts.push(`<span title="Bonus de dégâts quand cette caractéristique est testée pour attaquer">dégâts <b>+${b}</b></span>`);
-    if (k === 'DEX' && malusArmure(C)) parts.push(`<span title="Avec le malus d'armure">armuré <b>${n - malusArmure(C)}</b></span>`);
+    const e = statEff(C, k);
+    if (e !== n) parts.push(`<span class="perte" title="Après les pertes définitives du corps">après pertes <b>${e}</b></span>`);
+    const b = bonusDegats(e); if (b) parts.push(`<span title="Bonus de dégâts quand cette caractéristique est testée pour attaquer">dégâts <b>+${b}</b></span>`);
+    if (k === 'DEX' && malusArmure(C)) parts.push(`<span title="Avec le malus d'armure">armuré <b>${e - malusArmure(C)}</b></span>`);
     return parts.join('');
   }
 
@@ -89,7 +93,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   /* ---------- Équipement porté (emplacements) ---------- */
   const resume = o => {
     const p = [];
-    if (o.type === 'arme' || o.deg) { if (o.stat) p.push(esc(o.stat)); if (o.deg) { const b = bonusDegats(int(C.stats[o.stat])); p.push(esc(o.deg) + (b ? ` <b>+${b}</b>` : '')); } }
+    if (o.type === 'arme' || o.deg) { if (o.stat) p.push(esc(o.stat)); if (o.deg) { const b = bonusDegats(statEff(C, o.stat)); p.push(esc(o.deg) + (b ? ` <b>+${b}</b>` : '')); } }
     if (int(o.red)) p.push(`Réd. ${esc(o.red)}`);
     if (int(o.mal)) p.push(`DEX −${Math.abs(int(o.mal))}`);
     return p.join(' · ');
@@ -99,13 +103,15 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       const o = occupant(C, c.k);
       if (c.k === 'main_g' && o && o.porte === 'deux_mains') return '';
       const deux = o && o.porte === 'deux_mains';
+      const bloq = casesBloquees(C)[c.k];
+      if (bloq && !o) return `<div class="case vide bloquee"><div class="cl">${c.l}</div><div class="cn none">Inutilisable</div><div class="ce">${esc(ZONES_CORPS.find(z => z.k === bloq)?.n || '')} perdu${/s$/.test(ZONES_CORPS.find(z => z.k === bloq)?.n || '') ? 's' : ''}</div></div>`;
       return `<div class="case${o ? '' : ' vide'}${deux ? ' deux' : ''}${c.k.startsWith('main') ? ' arme' : ''}">
         <div class="cl">${deux ? 'Deux mains' : c.l}</div>
         ${o ? `<div class="cn">${esc(o.nom || 'Objet sans nom')}</div>${resume(o) ? `<div class="cs">${resume(o)}</div>` : ''}${o.eff ? `<div class="ce">${esc(o.eff)}</div>` : ''}
           <button class="mini ranger" data-ranger="${esc(o.id)}" title="Remettre dans l'inventaire">Ranger</button>` : '<div class="cn none">—</div>'}
       </div>`;
     }).join('');
-    const red = reductionPortee(C), mal = malusPorte(C), dex = int(C.stats.DEX);
+    const red = reductionPortee(C), mal = malusPorte(C), dex = statEff(C, 'DEX');
     return `<div class="cases">${cartes}</div>
       <div class="totaux"><span>Réduction totale <b>${red}</b></span><span>Malus DEX <b>${mal ? '−' + mal : '0'}</b></span>${dex != null ? `<span>DEX en armure <b>${dex - mal}</b></span>` : ''}</div>`;
   }
@@ -192,16 +198,18 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     if (k === 'devin') return `<div class="chips" id="cls-chips"></div>
         <p class="hint" style="font-style:normal">Déclarer l'action, sacrifier autant de points de magie ou de chance que de cartes à tirer, en garder une ; les autres sont défaussées. Le seuil est fixé par le MJ (20 au plus). Les cartes se renouvellent avec les points de magie.</p>`;
     if (k === 'sorcier') {
-      const rows = CORPS.map(([r, n, pts]) => {
-        const bonus = 2 * C.progression.filter(p => p.voie === 'partie' && p.cible === r).length;
-        const reu = C.progression.some(p => p.voie === 'reutil' && p.cible === r);
-        const et = (C.corps[r] && C.corps[r].etat) || 'intact';
-        const tot = pts + bonus;
-        return `<tr class="${et === 'temp' ? 'temp' : et === 'def' ? 'def' : ''}"><td class="rn">${r}</td><td>${n}${reu ? ' <span class="chip" style="padding:0 7px;font-size:.66rem">réutilisable</span>' : ''}</td><td class="pts">${tot}${bonus ? ` <small style="color:var(--gilt)">(+${bonus})</small>` : ''}</td><td class="num" style="color:var(--ink-soft)">${tot / 2}</td><td class="st"><select class="sel" id="f-corps-${r}" data-k="corps.${r}.etat" data-rerender="1" aria-label="État : ${n}"><option value="intact" ${et === 'intact' ? 'selected' : ''}>Intact</option><option value="temp" ${et === 'temp' ? 'selected' : ''}>Sacrifié (temporaire)</option><option value="def" ${et === 'def' ? 'selected' : ''}>Sacrifié (définitif)</option></select></td></tr>`;
+      const rows = ZONES_CORPS.map(z => {
+        const { tot, bonus, reu, et } = infoZone(z);
+        return `<tr class="${et === 'temp' ? 'temp' : et === 'def' ? 'def' : ''}"><td class="rn">${z.r}</td><td>${z.n}${reu ? ' <span class="chip" style="padding:0 7px;font-size:.66rem">réutilisable</span>' : ''}</td><td class="pts">${tot}${bonus ? ` <small style="color:var(--gilt)">(+${bonus})</small>` : ''}</td><td class="num" style="color:var(--ink-soft)">${tot / 2}</td><td class="st"><select class="sel" id="f-corps-${z.k}" data-k="corps.${z.k}.etat" data-rerender="1" data-corps="1" aria-label="État : ${z.n}"><option value="intact" ${et === 'intact' ? 'selected' : ''}>Intact</option><option value="temp" ${et === 'temp' ? 'selected' : ''}>Sacrifié (temporaire)</option><option value="def" ${et === 'def' ? 'selected' : ''}>Sacrifié (définitif)</option></select></td></tr>`;
       }).join('');
       return `<div class="chips" id="cls-chips"></div>
-        <div class="scroll"><table class="body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temporaire</th><th>État</th></tr></thead><tbody>${rows}</tbody></table></div>
-        <p class="hint">Jet de 1d12 + sacrifices pour dépasser le seuil sur 20. Un sacrifice temporaire vaut la moitié des points et coûte 2 PV ; il se récupère avec les points de magie.</p>`;
+        <div class="sorc">
+          <div class="corpsfig">${silhouette()}<div class="leg"><span class="l-intact">intact</span><span class="l-temp">temporaire</span><span class="l-def">perdu</span><span class="l-sel">à sacrifier</span></div></div>
+          <div class="sorcpanel"><div id="zonedetail">${detailZone()}</div><div id="prepa">${prepaHTML()}</div></div>
+        </div>
+        <details class="ref"${C.classe === 'sorcier' && lectureSeule ? ' open' : ''}><summary>TABLEAU DU CORPS</summary>
+          <div class="scroll"><table class="body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temporaire</th><th>État</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+        <p class="hint">Jet de 1d12 + sacrifices pour dépasser le seuil sur 20. Un sacrifice temporaire vaut la moitié des points et coûte ${COUT_PV_SACRIFICE_TEMP} PV ; il se récupère avec les points de magie.</p>`;
     }
     if (k === 'portesac') {
       const slots = SAC.map((opts, i) => {
@@ -272,6 +280,66 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     const sansVerbe = seq.filter(x => x.cat !== 'propre').every(x => x.cat && x.cat !== 'verbe');
     res.innerHTML = `<span>Coût <b>${COUT[m]}${n > 6 ? '+' : ''} PM</b></span><span>Seuil <b>${diff}${n > 6 ? '+' : ''}</b></span><span>Bonus <b>+${bonus}</b></span><span>Dé à obtenir <b>${need > 20 ? 'impossible' : need + ' ou plus'}</b></span><span style="flex-basis:100%;font-family:var(--f-body);letter-spacing:0;font-style:italic">${DIFF_TXT[m]}</span>${sansVerbe ? '<span class="warn" style="flex-basis:100%">Ce sort ne contient aucun verbe : il faut connaître le mot de l’action.</span>' : ''}`;
   }
+  /* ---------- Sorcier : silhouette, détail d'une zone, préparation d'un sacrifice ---------- */
+  const infoZone = z => infoZoneDe(C, z);
+  const silhouette = () => silhouetteSVG(C, { prepa, actif: zoneActive });
+  function detailZone() {
+    const z = ZONES_CORPS.find(x => x.k === zoneActive);
+    if (!z) return '<p class="none" style="margin:0">Touchez une partie du corps pour voir sa valeur et la préparer pour un sacrifice.</p>';
+    const { tot, bonus, reu, et } = infoZone(z);
+    const peutT = et === 'intact' || (et === 'temp' && reu), peutD = et !== 'def';
+    const etat = et === 'intact' ? 'Intact' : et === 'temp' ? 'Sacrifié temporairement' : 'Perdu définitivement';
+    return `<div class="zd"><div class="zt"><span class="rn">${z.r}</span><b>${esc(z.n)}</b><span class="etat e-${et}">${etat}</span></div>
+      <div class="zv"><span>Valeur <b>${tot}</b>${bonus ? ` <small>(dont +${bonus} de progression)</small>` : ''}</span><span>En temporaire <b>${tot / 2}</b></span>${reu ? '<span class="chip">réutilisable</span>' : ''}</div>
+      <div class="zc"><span class="lbl">SI PERDU DÉFINITIVEMENT</span>${esc(PERTES[z.k]?.t || '—')}</div>
+      <div class="za">${prepa[z.k] ? `<button class="mini" data-prepa="${z.k}" data-mode="">Retirer du sacrifice</button>` : `${peutT ? `<button class="mini" data-prepa="${z.k}" data-mode="temp">Sacrifier (temporaire)</button>` : ''}${peutD ? `<button class="mini danger" data-prepa="${z.k}" data-mode="def">Sacrifier (définitif)</button>` : ''}`}
+        ${et === 'temp' ? `<button class="mini" data-recup="${z.k}">Récupérer</button>` : ''}</div></div>`;
+  }
+  function prepaHTML() {
+    const l = Object.entries(prepa).map(([k, m]) => { const z = ZONES_CORPS.find(x => x.k === k); const { tot } = infoZone(z); return { z, m, v: m === 'temp' ? tot / 2 : tot }; });
+    const hist = (C.sacrifices || []).slice(0, 4).map(h => `<li>${esc(new Date(h.d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))} · ${esc(h.t)}</li>`).join('');
+    const nbTemp = Object.values(C.corps).filter(x => x && x.etat === 'temp').length;
+    const pied = `<div class="minuit"><button class="btn" data-minuit="1" ${nbTemp ? '' : 'disabled'} title="Les points de magie reviennent à minuit, et avec eux les parties sacrifiées temporairement">🌑 Minuit : récupérer ${nbTemp ? `(${nbTemp})` : ''}</button></div>${hist ? `<ul class="hist">${hist}</ul>` : ''}`;
+    if (!l.length) return `<div class="prep vide"><span class="lbl">PRÉPARER UN SACRIFICE</span><p class="none" style="margin:4px 0 0">Choisissez les parties à offrir, puis lancez le d12 à la table.</p></div>${pied}`;
+    const S = l.reduce((a, x) => a + x.v, 0), seuil = int(C.seuilSorcier);
+    const coutPV = l.filter(x => x.m === 'temp').length * COUT_PV_SACRIFICE_TEMP;
+    let chance = '';
+    if (seuil != null) {
+      const need = seuil - S + 1, faces = need <= 1 ? 12 : need > 12 ? 0 : 13 - need;
+      chance = need <= 1 ? '<b class="ok">Réussite assurée</b>' : need > 12 ? '<b class="ko">Impossible : il faut sacrifier davantage</b>' : `Il faut <b>${need} ou plus</b> au d12 · <b>${Math.round(faces / 12 * 100)} %</b> de chances`;
+    }
+    return `<div class="prep"><span class="lbl">PRÉPARER UN SACRIFICE</span>
+      <ul>${l.map(x => `<li><span>${esc(x.z.n)}</span><span class="m m-${x.m}">${x.m === 'temp' ? 'temporaire' : 'définitif'}</span><b>${x.v}</b><button class="x" data-prepa="${x.z.k}" data-mode="" aria-label="Retirer">×</button></li>`).join('')}</ul>
+      <div class="tot">Sacrifices <b>${S}</b> <label>Seuil <input class="in num" id="f-seuil" data-k="seuilSorcier" inputmode="numeric" value="${esc(C.seuilSorcier ?? '')}" placeholder="/20"></label></div>
+      <div class="chance">${seuil == null ? 'Indiquez le seuil fixé par le MJ.' : chance}</div>
+      ${coutPV ? `<div class="cout">Coût : <b>${coutPV} PV</b>${l.some(x => x.m === 'def') ? ' · pertes définitives appliquées' : ''}</div>` : l.some(x => x.m === 'def') ? '<div class="cout">Les pertes définitives seront appliquées à la fiche.</div>' : ''}
+      <div class="row"><button class="btn primary" data-sacrifier="1">Sacrifier</button><button class="btn ghost" data-annulerprepa="1">Annuler</button></div></div>${pied}`;
+  }
+  const renderSorc = () => {
+    const f = q('.corpsfig .silhouette'); if (f) f.outerHTML = silhouette();
+    const d = q('#zonedetail'); if (d) d.innerHTML = detailZone();
+    const p = q('#prepa'); if (p) { const a = document.activeElement; const foc = a && a.id === 'f-seuil' ? a.selectionStart : null; p.innerHTML = prepaHTML(); if (foc != null) { const i = q('#f-seuil'); i.focus(); try { i.setSelectionRange(foc, foc); } catch (e) {} } }
+    verrouiller();
+  };
+  function journal(t) { C.sacrifices = [{ d: new Date().toISOString(), t }, ...(C.sacrifices || [])].slice(0, 20); }
+  function sacrifier() {
+    const l = Object.entries(prepa); if (!l.length) return;
+    const M = maxEffectifs(C), nbT = l.filter(([, m]) => m === 'temp').length;
+    l.forEach(([k, m]) => { C.corps[k] = { ...(C.corps[k] || {}), etat: m }; });
+    if (nbT && M.pv != null) C.cur.pv = Math.max(0, actuel(C, 'pv', M.pv) - nbT * COUT_PV_SACRIFICE_TEMP);
+    journal(l.map(([k, m]) => `${ZONES_CORPS.find(z => z.k === k).n} (${m === 'temp' ? 'temp.' : 'définitif'})`).join(', '));
+    const ranges = rangerBloques(C);
+    prepa = {}; persist(); renderClass(); renderDerived(); renderEquip();
+    toast(`Sacrifice accompli${nbT ? ` · −${nbT * COUT_PV_SACRIFICE_TEMP} PV` : ''}${ranges.length ? ` · ${ranges.join(', ')} rangé${ranges.length > 1 ? 's' : ''}` : ''}`);
+  }
+  function minuit() {
+    const rec = ZONES_CORPS.filter(z => C.corps[z.k]?.etat === 'temp');
+    rec.forEach(z => { C.corps[z.k].etat = 'intact'; });
+    C.cur.pm = null;
+    if (rec.length) journal(`Minuit : ${rec.map(z => z.n).join(', ')} récupéré${rec.length > 1 ? 's' : ''}`);
+    persist(); renderClass(); renderDerived(); toast(`Minuit : ${rec.length} partie${rec.length > 1 ? 's' : ''} récupérée${rec.length > 1 ? 's' : ''}, points de magie restaurés`);
+  }
+
   function renderClass() {
     q('#class-picker').innerHTML = classPicker();
     q('#class-body').innerHTML = classBody();
@@ -380,6 +448,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       if (/^stats\./.test(t.dataset.k)) { const k = t.dataset.k.slice(6); delete C.rolls[k]; const d = q('[data-dice="' + k + '"]'); if (d) d.textContent = ''; }
       if (t.dataset.k === 'chance') { C.chanceRoll = null; }
       persist();
+      if (t.dataset.k === 'seuilSorcier') { renderSorc(); return; }
       if (/^mots\./.test(t.dataset.k)) { seq = seq.filter(x => x.cat === 'propre' || C.mots[x.i]); seq.forEach(x => { if (x.cat !== 'propre' && C.mots[x.i]) Object.assign(x, { mot: C.mots[x.i].mot, sens: C.mots[x.i].sens, cat: C.mots[x.i].cat || '' }); }); renderSpell(); }
       renderDerived();
     }
@@ -412,6 +481,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       renderEquip(); return;
     }
     if (t.dataset.spell) { seq.forEach(x => { if (x.cat !== 'propre' && C.mots[x.i]) x.cat = C.mots[x.i].cat || ''; }); renderSpell(); }
+    if (t.dataset.corps) { const r = rangerBloques(C); if (r.length) toast(`${r.join(', ')} rangé${r.length > 1 ? 's' : ''} dans l’inventaire`); persist(); renderEquip(); }
     if (t.dataset.rerender) { renderClass(); renderDerived(); }
     if (t.dataset.sac !== undefined) { const i = +t.dataset.sac; C.sac[i] = t.value === '__autre' ? (C.sac[i] && !SAC[i].includes(C.sac[i]) ? C.sac[i] : 'Objet échangé') : t.value; persist(); renderClass(); if (t.value === '__autre') { const x = q('#f-sacx-' + i); x && x.select(); } }
     if (t.id === 'file-portrait' && t.files[0]) { setPortrait(t.files[0]); t.value = ''; }
@@ -422,9 +492,25 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   root.addEventListener('focusin', e => {
     if (e.target.getAttribute('list') === 'mots-list') q('#mots-list').innerHTML = C.mots.filter(m => String(m.mot || '').trim()).map(m => `<option value="${esc(m.mot.trim())}">`).join('');
   });
+  root.addEventListener('click', e => {
+    const g = e.target.closest && e.target.closest('[data-zone]'); if (!g || !root.contains(g)) return;
+    zoneActive = zoneActive === g.dataset.zone ? null : g.dataset.zone; renderSorc();
+  });
+  root.addEventListener('keydown', e => {
+    const g = e.target.closest && e.target.closest('[data-zone]'); if (!g || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault(); zoneActive = g.dataset.zone; renderSorc(); const n = q(`[data-zone="${zoneActive}"]`); n && n.focus();
+  });
   root.addEventListener('click', async e => {
     const t = e.target.closest('button'); if (!t || lectureSeule || !root.contains(t)) return;
     if (t.dataset.learn) { apprendre(t.dataset.learn); return; }
+    if (t.dataset.prepa) { if (t.dataset.mode) prepa[t.dataset.prepa] = t.dataset.mode; else delete prepa[t.dataset.prepa]; renderSorc(); return; }
+    if (t.dataset.annulerprepa) { prepa = {}; renderSorc(); return; }
+    if (t.dataset.sacrifier) {
+      if (Object.values(prepa).includes('def') && !await confirmer({ titre: 'Sacrifice définitif ?', texte: Object.entries(prepa).filter(([, m]) => m === 'def').map(([k]) => `<b>${esc(ZONES_CORPS.find(z => z.k === k).n)}</b> : ${esc(PERTES[k]?.t || '')}`).join('<br>') + '<br><br>Ces parties seront perdues pour toujours.', oui: 'Sacrifier', danger: true })) return;
+      sacrifier(); return;
+    }
+    if (t.dataset.recup) { C.corps[t.dataset.recup].etat = 'intact'; journal(`${ZONES_CORPS.find(z => z.k === t.dataset.recup).n} récupéré`); persist(); renderClass(); renderDerived(); return; }
+    if (t.dataset.minuit) { minuit(); return; }
     if (t.dataset.compose !== undefined) { const m = C.mots[+t.dataset.compose]; if (m) { seq.push({ i: +t.dataset.compose, mot: m.mot, sens: m.sens, cat: m.cat || '' }); renderSpell(); } return; }
     if (t.dataset.propre) { const inp = q('#propre'); const v = inp && inp.value.trim(); if (v) { seq.push({ mot: v, cat: 'propre' }); renderSpell(); } else if (inp) inp.focus(); return; }
     if (t.dataset.unseq !== undefined) { seq.splice(+t.dataset.unseq, 1); renderSpell(); return; }
@@ -449,6 +535,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     }
     if (t.dataset.equiper) {
       const o = C.possessions.find(x => x.id === t.dataset.equiper);
+      const refus = o && refusEquiper(C, o); if (refus) { toast(refus); return; }
       const renvoyes = equiper(C, t.dataset.equiper);
       persist(); renderEquip();
       toast(`${o?.nom || 'Objet'} équipé${renvoyes.length ? ' · ' + renvoyes.join(', ') + ' rangé' + (renvoyes.length > 1 ? 's' : '') + ' dans l’inventaire' : ''}`);
@@ -493,7 +580,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   render();
   return {
     render,
-    setData(nv) { C = nv; seq = []; render(); },
+    setData(nv) { C = nv; seq = []; prepa = {}; zoneActive = null; render(); },
     lecture(on) { reading = lectureSeule || on; root.classList.toggle('reading', reading); },
     get data() { return C; },
   };

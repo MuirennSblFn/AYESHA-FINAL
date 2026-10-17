@@ -114,3 +114,46 @@ export function incantation(suite) {
   });
   return out.join(' ');
 }
+
+/* ---------- Sorcier : les zones du corps ----------
+   Chaque zone a une clé (stockée dans C.corps), un numéro, une valeur.
+   Les deux yeux sont deux zones distinctes ; les bonus de progression visant
+   « VI · Œil » s'appliquent aux deux. */
+export const ZONES_CORPS = [
+  { k: 'I', r: 'I', n: 'Doigts', pts: 2 },
+  { k: 'II', r: 'II', n: 'Mains', pts: 4 },
+  { k: 'III', r: 'III', n: 'Bras', pts: 6 },
+  { k: 'IV', r: 'IV', n: 'Pieds', pts: 4 },
+  { k: 'V', r: 'V', n: 'Jambes', pts: 6 },
+  { k: 'VI', r: 'VI', n: 'Œil gauche', pts: 6, base: 'VI' },
+  { k: 'VIb', r: 'VI', n: 'Œil droit', pts: 6, base: 'VI' },
+  { k: 'VII', r: 'VII', n: 'Oreilles', pts: 6 },
+  { k: 'VIII', r: 'VIII', n: 'Langue', pts: 5 },
+  { k: 'IX', r: 'IX', n: 'Sexe', pts: 10 },
+  { k: 'X', r: 'X', n: 'Reins', pts: 10 },
+  { k: 'XI', r: 'XI', n: 'Cœur', pts: 12 },
+  { k: 'XII', r: 'XII', n: 'Souvenirs', pts: 6 },
+  { k: 'XIII', r: 'XIII', n: 'Âme', pts: 12 },
+];
+ZONES_CORPS.forEach(z => { if (!z.base) z.base = z.k; });
+
+/* Conséquences d'une perte DÉFINITIVE (appliquées automatiquement par la fiche).
+   stats : malus sur les caractéristiques ; pv / sm : malus sur les maximums ;
+   bloque : cases d'équipement inutilisables. À ajuster librement. */
+export const PERTES = {
+  I:    { t: 'DEX −10 : gestes fins difficiles', stats: { DEX: -10 } },
+  II:   { t: 'Plus aucune arme, bouclier ni gant ; DEX −20', stats: { DEX: -20 }, bloque: ['main_d', 'main_g', 'gants'] },
+  III:  { t: 'Plus aucune arme, bouclier ni gant ; FOR −20', stats: { FOR: -20 }, bloque: ['main_d', 'main_g', 'gants'] },
+  IV:   { t: 'DEX −10 ; plus de chaussures', stats: { DEX: -10 }, bloque: ['pieds'] },
+  V:    { t: 'DEX −20 ; se déplace très difficilement ; plus de chaussures', stats: { DEX: -20 }, bloque: ['pieds'] },
+  VI:   { t: 'PER −15 (les deux yeux : aveugle)', stats: { PER: -15 } },
+  VIb:  { t: 'PER −15 (les deux yeux : aveugle)', stats: { PER: -15 } },
+  VII:  { t: 'PER −15 : sourd', stats: { PER: -15 } },
+  VIII: { t: 'Muet : CHA −20, ne peut plus parler', stats: { CHA: -20 } },
+  IX:   { t: 'Pas d’effet de jeu (à l’appréciation du MJ)' },
+  X:    { t: 'PV maximum −3', pv: -3 },
+  XI:   { t: 'PV maximum −5', pv: -5 },
+  XII:  { t: 'INT −15 : des souvenirs sont effacés (le MJ précise lesquels)', stats: { INT: -15 } },
+  XIII: { t: 'Santé mentale maximum −5', sm: -5 },
+};
+export const COUT_PV_SACRIFICE_TEMP = 2;

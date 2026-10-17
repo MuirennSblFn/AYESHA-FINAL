@@ -1,0 +1,78 @@
+/* =====================================================================
+   Sorcier : silhouette du corps et préparation des sacrifices
+   ===================================================================== */
+.fichewrap .sorc{display:grid;grid-template-columns:250px minmax(0,1fr);gap:8px 26px;align-items:start;margin:4px 0 10px}
+.fichewrap .corpsfig{display:flex;flex-direction:column;align-items:center;gap:6px}
+.silhouette{width:100%;max-width:250px;height:auto;display:block;overflow:visible}
+.silhouette .base>*{fill:var(--page-2);stroke:var(--rule);stroke-width:1.2}
+.silhouette .z>*{fill:var(--gilt-soft);stroke:var(--gilt);stroke-width:1.6;transition:fill .15s,stroke-width .15s}
+.silhouette .z{cursor:pointer;outline:none}
+.silhouette .z .lines{fill:none;stroke-width:3.6;stroke-linecap:round}
+.silhouette .z .ring{fill:none;stroke-dasharray:3 4}
+.silhouette .z .hit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke}
+.silhouette .z .ame{fill:color-mix(in srgb,var(--gilt) 35%,transparent)}
+.silhouette .z:hover>*:not(.hit),.silhouette .z:focus-visible>*:not(.hit){stroke-width:2.6}
+.silhouette .z-temp>*:not(.hit){fill:transparent;stroke-dasharray:3 3;opacity:.75}
+.silhouette .z-def>*:not(.hit){fill:color-mix(in srgb,var(--ink-faint) 40%,transparent);stroke:var(--ink-faint);stroke-dasharray:none}
+.silhouette .z.sel>*:not(.hit){fill:color-mix(in srgb,var(--sang) 28%,transparent);stroke:var(--sang);stroke-width:2.4;stroke-dasharray:none;opacity:1}
+.silhouette .z.act>*:not(.hit){stroke-width:3.2;filter:drop-shadow(0 0 3px var(--gilt))}
+.silhouette .z .lines,.silhouette .z.sel .lines{fill:none}
+.silhouette .v{font-family:var(--f-label);font-size:12px;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.silhouette .v-temp{fill:var(--gilt)}
+.silhouette .v-def{fill:var(--ink-faint)}
+.fichewrap .corpsfig .leg{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font-family:var(--f-label);font-size:.66rem;letter-spacing:.08em;color:var(--ink-soft)}
+.fichewrap .corpsfig .leg span::before{content:"";display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px;border:1.5px solid var(--gilt);background:var(--gilt-soft)}
+.fichewrap .corpsfig .leg .l-temp::before{background:transparent;border-style:dashed}
+.fichewrap .corpsfig .leg .l-def::before{border-color:var(--ink-faint);background:color-mix(in srgb,var(--ink-faint) 40%,transparent)}
+.fichewrap .corpsfig .leg .l-sel::before{border-color:var(--sang);background:color-mix(in srgb,var(--sang) 28%,transparent)}
+.fichewrap .sorcpanel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.fichewrap .zd{border:1px solid var(--rule);background:var(--page);padding:10px 12px}
+.fichewrap .zd .zt{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.fichewrap .zd .zt .rn{font-family:var(--f-fell);color:var(--sang)}
+.fichewrap .zd .zt b{font-family:var(--f-fell);font-weight:400;font-size:1.3rem}
+.fichewrap .zd .etat{margin-left:auto;font-family:var(--f-label);font-size:.68rem;letter-spacing:.1em;font-weight:700;color:var(--vert)}
+.fichewrap .zd .e-temp{color:var(--gilt)} .fichewrap .zd .e-def{color:var(--ink-faint)}
+.fichewrap .zd .zv{display:flex;flex-wrap:wrap;gap:4px 18px;margin:4px 0 6px;font-family:var(--f-label);font-size:.78rem;letter-spacing:.04em;color:var(--ink-soft)}
+.fichewrap .zd .zv b{font-family:var(--f-fell);font-size:1.15rem;color:var(--ink);font-weight:400;letter-spacing:0}
+.fichewrap .zd .zc{font-size:.88rem;color:var(--ink-soft);font-style:italic}
+.fichewrap .zd .zc .lbl{font-style:normal;display:block;font-size:.64rem;margin-bottom:1px}
+.fichewrap .zd .za{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.fichewrap .mini.danger{color:var(--sang);border-color:color-mix(in srgb,var(--sang) 45%,var(--rule))}
+.fichewrap .prep{border:1px dashed var(--sang);background:var(--sang-soft);padding:10px 12px}
+.fichewrap .prep.vide{border-color:var(--rule);background:transparent}
+.fichewrap .prep ul{list-style:none;margin:6px 0;padding:0}
+.fichewrap .prep li{display:grid;grid-template-columns:minmax(0,1fr) auto 2.5em 28px;gap:8px;align-items:center;padding:3px 0;border-bottom:1px dotted var(--rule)}
+.fichewrap .prep li b{font-family:var(--f-fell);font-size:1.1rem;font-weight:400;text-align:right}
+.fichewrap .prep .m{font-family:var(--f-label);font-size:.66rem;letter-spacing:.08em;font-weight:700;color:var(--gilt)}
+.fichewrap .prep .m-def{color:var(--sang)}
+.fichewrap .prep .tot{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-family:var(--f-label);font-size:.8rem;letter-spacing:.06em;color:var(--ink-soft)}
+.fichewrap .prep .tot b{font-family:var(--f-fell);font-size:1.4rem;color:var(--ink);font-weight:400}
+.fichewrap .prep .tot label{display:inline-flex;align-items:baseline;gap:6px}
+.fichewrap .prep .tot .in{width:3.4em;text-align:center;border-bottom:1px solid var(--sang);font-family:var(--f-fell);font-size:1.15rem}
+.fichewrap .prep .chance{margin-top:6px;font-size:.95rem}
+.fichewrap .prep .chance .ok{color:var(--vert)} .fichewrap .prep .chance .ko{color:var(--sang)}
+.fichewrap .prep .cout{font-size:.88rem;color:var(--sang);margin-top:2px}
+.fichewrap .prep .row{display:flex;gap:8px;margin-top:10px}
+.fichewrap .minuit{display:flex;justify-content:flex-start}
+.fichewrap .hist{list-style:none;margin:0;padding:0;font-size:.82rem;color:var(--ink-soft)}
+.fichewrap .hist li{padding:2px 0;border-bottom:1px dotted var(--rule)}
+.fichewrap .stat .meta .perte{color:var(--sang)}
+.fichewrap .stat .meta .perte b{color:var(--sang)}
+.fichewrap .case.bloquee{background:repeating-linear-gradient(-45deg,transparent 0 6px,color-mix(in srgb,var(--ink-faint) 18%,transparent) 6px 7px)}
+.fichewrap.readonly .za,.fichewrap.readonly .prep .row,.fichewrap.readonly .minuit{display:none}
+@media (max-width:860px){
+  .fichewrap .sorc{grid-template-columns:1fr}
+  .silhouette{max-width:220px}
+}
+/* Impression */
+.ps-sorc{display:grid;grid-template-columns:1fr 30mm;gap:4mm;align-items:start}
+.ps-sil{width:30mm;height:auto}
+.ps-sil .base>*{fill:none;stroke:#b9b2c2;stroke-width:1.2}
+.ps-sil .z>*{fill:none;stroke:#83641b;stroke-width:1.5}
+.ps-sil .z .hit{display:none}
+.ps-sil .z .lines{stroke-width:3}
+.ps-sil .z-temp>*{stroke-dasharray:3 3}
+.ps-sil .z-def>*{fill:#d8d4dd;stroke:#8a8497}
+.ps-sil .v{font-family:var(--f-label);font-size:13px;font-weight:700;fill:#1c1822;text-anchor:middle;dominant-baseline:middle}
+.ps-sil .labels{display:none}
+.ps-sil .z-def>*{fill:#8a8497;stroke:#1c1822}

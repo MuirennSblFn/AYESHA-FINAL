@@ -1,8 +1,9 @@
 /* Fiche imprimable (2 pages A4) générée à partir des données du personnage. */
 import { esc } from '../../core/ui.js';
-import { STATS, CLASSES, VOIE, CORPS, COUT, DIFF, CASES } from '../../shared/regles.js';
+import { silhouetteSVG } from './corps.js';
+import { STATS, CLASSES, VOIE, CORPS, COUT, DIFF, CASES, ZONES_CORPS } from '../../shared/regles.js';
 import { occupant, sacoche, reductionPortee, malusPorte } from '../../shared/equipement.js';
-import { int, compte, niveau, malusArmure, bonusDegats, maxEffectifs } from '../../shared/personnage.js';
+import { int, compte, niveau, malusArmure, bonusDegats, maxEffectifs, statEff } from '../../shared/personnage.js';
 
 const SIG = '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="14" stroke-dasharray="1.5 2.5"/><path d="M20 5 L33 28 H7 Z"/><path d="M11 20 Q20 12 29 20 Q20 28 11 20 Z"/><circle cx="20" cy="20" r="2.6" fill="currentColor"/></svg>';
 
@@ -27,13 +28,13 @@ export function ficheImprimable(C) {
         <p class="rule" style="font-style:normal">Déclarer l'action, sacrifier autant de points de magie ou de chance que de cartes à tirer, en garder une. Seuil fixé par le MJ, 20 au plus. Les cartes se renouvellent avec les points de magie.</p>
         <div class="lb" style="margin-top:2mm">CARTES PIOCHÉES</div>${Array.from({ length: 3 }, () => '<div class="blankline"></div>').join('')}</div>`;
     if (k === 'sorcier') {
-      const rows = CORPS.map(([r, n, pts]) => {
-        const bonus = 2 * C.progression.filter(p => p.voie === 'partie' && p.cible === r).length; const tot = pts + bonus;
-        const et = (C.corps[r] && C.corps[r].etat) || 'intact'; const reu = C.progression.some(p => p.voie === 'reutil' && p.cible === r);
-        return `<tr><td class="rn">${r}</td><td>${n}${reu ? ' <small>(réutilisable)</small>' : ''}</td><td class="tn">${tot}${bonus ? ` <small>(+${bonus})</small>` : ''}</td><td class="tn">${tot / 2}</td><td><span class="ps-box ${et === 'temp' ? 'on' : ''}"></span>temp. <span class="ps-box ${et === 'def' ? 'on' : ''}" style="margin-left:3mm"></span>déf.</td></tr>`;
+      const rows = ZONES_CORPS.map(z => {
+        const bonus = 2 * C.progression.filter(p => p.voie === 'partie' && p.cible === z.base).length; const tot = z.pts + bonus;
+        const et = (C.corps[z.k] && C.corps[z.k].etat) || 'intact'; const reu = C.progression.some(p => p.voie === 'reutil' && p.cible === z.base);
+        return `<tr><td class="rn">${z.r}</td><td>${z.n}${reu ? ' <small>(réutilisable)</small>' : ''}</td><td class="tn">${tot}${bonus ? ` <small>(+${bonus})</small>` : ''}</td><td class="tn">${tot / 2}</td><td><span class="ps-box ${et === 'temp' ? 'on' : ''}"></span>temp. <span class="ps-box ${et === 'def' ? 'on' : ''}" style="margin-left:3mm"></span>déf.</td></tr>`;
       }).join('');
       return `<div class="ps-cls"><div class="chips"><span>PV gagnés <b>+${3 * count('pv')}</b></span></div>
-        <table class="ps-body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temp.</th><th>Sacrifice</th></tr></thead><tbody>${rows}</tbody></table>
+        <div class="ps-sorc"><table class="ps-body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temp.</th><th>Sacrifice</th></tr></thead><tbody>${rows}</tbody></table>${silhouetteSVG(C, { impression: true })}</div>
         <p class="rule">1d12 + sacrifices pour dépasser le seuil sur 20. Un sacrifice temporaire vaut la moitié des points et coûte 2 PV.</p></div>`;
     }
     if (k === 'portesac') return `<div class="ps-cls"><div class="chips"><span>Duplication <b>${count('dupliquer') ? 'oui' : 'non'}</b></span><span>Tirages multiples <b>${count('tirages') ? 'oui' : 'non'}</b></span><span>Échanges <b>${count('echange')}</b></span></div>
@@ -43,14 +44,14 @@ export function ficheImprimable(C) {
   }
 
   const M = maxEffectifs(C); const cl = C.classe ? CLASSES[C.classe].nom : '';
-  const stats = STATS.map(s => { const n = int(C.stats[s.k]); const b = bonusDegats(n); return `<div class="ps-stat"><div class="ab">${s.k}</div><div class="v">${n == null ? '' : n}</div><div class="m">${n == null ? s.n : `origine ${Math.floor(n / 5)}${b ? ` · dégâts +${b}` : ''}${s.k === 'DEX' && malusArmure(C) ? ` · armuré ${n - malusArmure(C)}` : ''}`}</div></div>`; }).join('');
+  const stats = STATS.map(s => { const n = int(C.stats[s.k]); const ef = statEff(C, s.k); const b = bonusDegats(ef); return `<div class="ps-stat"><div class="ab">${s.k}</div><div class="v">${n == null ? '' : n}</div><div class="m">${n == null ? s.n : `${ef !== n ? `après pertes ${ef} · ` : ''}origine ${Math.floor(ef / 5)}${b ? ` · dégâts +${b}` : ''}${s.k === 'DEX' && malusArmure(C) ? ` · armuré ${n - malusArmure(C)}` : ''}`}</div></div>`; }).join('');
   const G = [['pv', 'PV · Points de vie', 36], ['pm', 'PM · Points de magie', 36], ['sm', 'SM · Santé mentale', 19], ['ch', 'Ch · Chance', 19]];
   const gauges = G.map(([k, l, def]) => { const max = M[k]; const top = max == null ? def - 1 : max; return `<div class="ps-g ${k}"><div class="gl">${l}<small>${max == null ? 'maximum : ____' : 'maximum : ' + max}</small></div><div class="nums">${Array.from({ length: top + 1 }, (_, i) => `<span class="${i === max ? 'max' : ''}">${i}</span>`).join('')}</div></div>`; }).join('');
   const tal = C.talents.map(t => `<div class="t">${esc(t.t)}</div><div class="j">${esc(t.j)}</div>`).join('');
   const ent = C.entente.map(e => `<tr><td class="n">${esc(e.nom)}</td><td>${esc(e.a)}</td><td class="note">${String(e.nom || '').trim() ? (e.note || 0) : '___'} / 10</td></tr>`).join('');
   const prog = C.progression.map((p, i) => { const v = VOIE[p.voie]; let c = p.cible || ''; if (v && v.cible === 'partie') { const b = CORPS.find(x => x[0] === c); if (b) c = b[0] + ' · ' + b[1]; } return `<tr><td class="tn" style="width:14mm;color:var(--pg);font-family:var(--f-fell)">Niv. ${i + 2}</td><td>${v ? esc(v.l) : ''}</td><td>${esc(c)}</td></tr>`; }).join('');
   const progBlank = Array.from({ length: Math.max(2, 5 - C.progression.length) }, (_, i) => `<tr><td class="tn" style="width:14mm;color:var(--pg);font-family:var(--f-fell)">Niv. ${C.progression.length + i + 2}</td><td></td><td></td></tr>`).join('');
-  const caract = o => { const p = []; if (o.deg) { const b = bonusDegats(int(C.stats[o.stat])); p.push(`${esc(o.stat)} ${esc(o.deg)}${b ? ' +' + b : ''}`); } if (int(o.red)) p.push('Réd. ' + esc(o.red)); if (int(o.mal)) p.push('DEX −' + Math.abs(int(o.mal))); return p.join(' · '); };
+  const caract = o => { const p = []; if (o.deg) { const b = bonusDegats(statEff(C, o.stat)); p.push(`${esc(o.stat)} ${esc(o.deg)}${b ? ' +' + b : ''}`); } if (int(o.red)) p.push('Réd. ' + esc(o.red)); if (int(o.mal)) p.push('DEX −' + Math.abs(int(o.mal))); return p.join(' · '); };
   const equipRows = CASES.map(c => { const o = occupant(C, c.k); if (c.k === 'main_g' && o && o.porte === 'deux_mains') return ''; const lab = o && o.porte === 'deux_mains' ? 'Deux mains' : c.l;
     return `<tr><td class="lb" style="width:26mm">${lab.toUpperCase()}</td><td>${o ? esc(o.nom) : ''}</td><td style="width:34mm">${o ? caract(o) : ''}</td><td><small>${o ? esc(o.eff) : ''}</small></td></tr>`; }).join('');
   const inv = sacoche(C).filter(o => String(o.nom || '').trim());

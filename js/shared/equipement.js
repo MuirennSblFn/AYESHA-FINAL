@@ -12,6 +12,8 @@
    occupant dans l'inventaire.
    ===================================================================== */
 
+import { PERTES } from './regles.js';
+
 const ent = v => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; };
 export const nouvelId = () => 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -34,10 +36,34 @@ export function ranger(C, id) {
 }
 const memeObjet = (a, b) => a.item && b.item ? a.item === b.item && a.nom === b.nom : false;
 
+/* Cases rendues inutilisables par les pertes définitives du Sorcier : { case: 'Mains perdues', … } */
+export function casesBloquees(C) {
+  const b = {};
+  Object.entries(C.corps || {}).forEach(([k, v]) => {
+    if (v && v.etat === 'def' && PERTES[k]?.bloque) PERTES[k].bloque.forEach(c => { if (!b[c]) b[c] = k; });
+  });
+  return b;
+}
+/* Peut-on équiper cet objet ? Renvoie '' si oui, sinon la raison */
+export function refusEquiper(C, o) {
+  const b = casesBloquees(C);
+  if (o.empl === 'deux_mains' && (b.main_d || b.main_g)) return 'Le personnage ne peut plus tenir d’objet à deux mains.';
+  if ((o.empl === 'main' || o.empl === 'bouclier') && b.main_d && b.main_g) return 'Le personnage ne peut plus rien tenir en main.';
+  if (o.empl && !['main', 'deux_mains', 'bouclier'].includes(o.empl) && b[o.empl]) return 'Cet emplacement est inutilisable depuis une perte définitive.';
+  return '';
+}
+/* Range dans l'inventaire tout ce qui occupe une case devenue inutilisable. Renvoie les noms rangés. */
+export function rangerBloques(C) {
+  const b = casesBloquees(C), noms = [];
+  C.possessions.filter(o => o.porte && (b[o.porte] || (o.porte === 'deux_mains' && (b.main_d || b.main_g)))).forEach(o => { noms.push(o.nom || 'objet'); ranger(C, o.id); });
+  return noms;
+}
+
 /* Équipe un objet de l'inventaire. Renvoie la liste des noms renvoyés dans l'inventaire. */
 export function equiper(C, id, main) {
   let o = C.possessions.find(x => x.id === id);
-  if (!o || o.porte || !estEquipable(o)) return [];
+  if (!o || o.porte || !estEquipable(o) || refusEquiper(C, o)) return [];
+  const bloq = casesBloquees(C);
   // Un seul exemplaire part sur le personnage ; le reste de la pile reste dans l'inventaire
   if (ent(o.qte) > 1) {
     o.qte = ent(o.qte) - 1;
@@ -49,8 +75,9 @@ export function equiper(C, id, main) {
   let cases;
   if (o.empl === 'deux_mains') cases = ['main_d', 'main_g'];
   else if (o.empl === 'main' || o.empl === 'bouclier') {
-    const libre = k => !occupant(C, k);
-    const pref = main || (o.empl === 'bouclier' ? ['main_g', 'main_d'] : ['main_d', 'main_g']).find(libre) || (o.empl === 'bouclier' ? 'main_g' : 'main_d');
+    const libre = k => !occupant(C, k) && !bloq[k];
+    const ordre = o.empl === 'bouclier' ? ['main_g', 'main_d'] : ['main_d', 'main_g'];
+    const pref = main || ordre.find(libre) || ordre.find(k => !bloq[k]);
     cases = [pref];
   } else cases = [o.empl];
   const renvoyes = [];
