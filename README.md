@@ -85,11 +85,15 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 - Import initial : `supabase/lexique.sql` (148 mots de la feuille 3 du classeur), à lancer après `schema.sql`.
 
 **Sorcier** :
-- Une silhouette du corps montre les 14 parties (dont les deux yeux) avec leur valeur et leur état : intacte, sacrifiée temporairement (valeur divisée par deux), perdue (✕).
+- Un pantin articulé (bras en croix, sous une arche gothique) montre les 14 parties (dont les deux yeux) avec leur valeur et leur état : intacte, sacrifiée temporairement (valeur divisée par deux), perdue (✕).
 - Toucher une partie affiche sa valeur, son bonus de progression et la conséquence d'une perte définitive ; on peut la préparer pour un sacrifice (temporaire ou définitif).
-- La préparation additionne les sacrifices, et avec le seuil fixé par le MJ indique le résultat à faire au d12 et la probabilité de réussite (le jet reste aux dés physiques). « Sacrifier » applique les états et retire 2 PV par sacrifice temporaire.
+- La préparation additionne les sacrifices, et avec le seuil fixé par le MJ indique le résultat à faire au d12 et la probabilité de réussite (le jet reste aux dés physiques). « Sacrifier » applique les états et retire les PV : 2 par sacrifice temporaire, la valeur de la partie pour un sacrifice définitif (comme dans le guide).
 - « Minuit » récupère les parties sacrifiées temporairement et restaure les points de magie.
 - Les pertes définitives s'appliquent : malus de caractéristiques, PV ou SM maximum réduits, emplacements d'équipement inutilisables (l'équipement concerné est rangé). Les règles sont dans `PERTES` (js/shared/regles.js), modifiables.
+
+**Règles** (onglet *Règles*, public) : le guide de jeu général, lisible sans connexion. Sommaire cliquable qui suit la lecture, recherche dans tout le texte (sans se soucier des accents), lien direct vers chaque partie (bouton ¶ à côté d'un titre, ex. `#/regles/sorciers`). Le texte est dans `contenu/regles.html` : on peut le corriger directement (les consignes sont en tête du fichier).
+
+**Notes** (onglet *Notes*) : le carnet de session de chaque joueur. Une note par session (titre, date, texte libre), enregistrement automatique, recherche, export en fichier texte. Les notes sont privées : ni les autres joueurs ni le MJ ne les voient. Nécessite d'avoir relancé `schema.sql` après la mise à jour.
 
 **Sauvegarde** : automatique, en ligne. L'état est affiché au-dessus de la fiche. En cas de coupure, une copie reste sur l'appareil et l'envoi reprend tout seul. Si la fiche a été modifiée entre-temps depuis un autre appareil, le site demande quelle version garder.
 
@@ -105,7 +109,11 @@ css/grimoire.css         styles du module Grimoire
 css/fiche.css            styles de la fiche, de La table et de l'impression
 css/armurerie.css        styles de l'armurerie
 css/lexique.css          styles du lexique et des outils du Magicien
-css/sorcier.css          silhouette du Sorcier et préparation des sacrifices
+css/sorcier.css          pantin du Sorcier et préparation des sacrifices
+css/regles.css           page des règles
+css/notes.css            carnet de notes
+contenu/regles.html      texte du guide de jeu (page Règles)
+contenu/planche-anatomique.jpg  planche du guide
 js/config.js             adresse et clé publique Supabase
 js/core/                 socle : connexion (auth.js), routeur (router.js), outils (ui.js)
 js/shared/regles.js      règles d'Ayesha (caractéristiques, classes, sac, sorts…)
@@ -113,10 +121,11 @@ js/shared/personnage.js  modèle du personnage, calculs, lecture et enregistreme
 js/shared/banque.js      comptes, achats, catalogue, format des euros, temps réel
 js/shared/equipement.js  inventaire, emplacements, équiper / ranger / utiliser, totaux
 js/shared/lexique.js     lexique de l'ancien langage (lecture, recherche, gestion MJ)
+js/shared/notes.js       notes de session (lecture, enregistrement)
 js/modules/index.js      LISTE DES MODULES (c'est ici qu'on en ajoute)
-js/modules/*.js          accueil, grimoire, lexique, armurerie, table (MJ)
-js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), corps.js (silhouette), index.js (page)
-supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), maintien en éveil
+js/modules/*.js          accueil, grimoire, regles, notes, lexique, armurerie, table (MJ)
+js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), corps.js (pantin du Sorcier), index.js (page)
+supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), notes, maintien en éveil
 vendor/                  bibliothèque Supabase (version figée, pas de dépendance à un CDN)
 ```
 

@@ -244,6 +244,27 @@ do $$ begin
   begin alter publication supabase_realtime add table public.lexique; exception when duplicate_object then null; end;
 end $$;
 
+-- ---------- Notes de session ----------
+-- Carnet personnel de chaque joueur : seul son auteur peut lire et écrire ses notes
+-- (le MJ ne les voit pas).
+create table if not exists public.notes (
+  id            uuid primary key default gen_random_uuid(),
+  owner         uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  titre         text not null default '',
+  date_session  date,
+  contenu       text not null default '',
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+create index if not exists notes_owner on public.notes(owner, date_session desc);
+drop trigger if exists notes_touch on public.notes;
+create trigger notes_touch before update on public.notes
+  for each row execute function public.touch_updated_at();
+alter table public.notes enable row level security;
+drop policy if exists "notes : les siennes" on public.notes;
+create policy "notes : les siennes" on public.notes
+  for all using (owner = auth.uid()) with check (owner = auth.uid());
+
 -- ---------- Maintien en éveil ----------
 -- Supabase met en pause un projet gratuit resté inactif une semaine.
 -- Le workflow GitHub .github/workflows/keepalive.yml appelle cette fonction tous les 2 jours.

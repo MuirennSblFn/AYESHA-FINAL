@@ -14,11 +14,15 @@ import fiche from './fiche/index.js';
 import table from './table.js';
 import armurerie from './armurerie.js';
 import lexique from './lexique.js';
+import regles from './regles.js';
+import notes from './notes.js';
 
 export const MODULES = [
   accueil,
   grimoire,
+  regles,
   fiche,
+  notes,
   lexique,
   armurerie,
   table,

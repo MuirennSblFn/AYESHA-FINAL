@@ -209,7 +209,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
         </div>
         <details class="ref"${C.classe === 'sorcier' && lectureSeule ? ' open' : ''}><summary>TABLEAU DU CORPS</summary>
           <div class="scroll"><table class="body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temporaire</th><th>État</th></tr></thead><tbody>${rows}</tbody></table></div></details>
-        <p class="hint">Jet de 1d12 + sacrifices pour dépasser le seuil sur 20. Un sacrifice temporaire vaut la moitié des points et coûte ${COUT_PV_SACRIFICE_TEMP} PV ; il se récupère avec les points de magie.</p>`;
+        <p class="hint">Jet de 1d12 + sacrifices pour dépasser le seuil sur 20. Les points sacrifiés se déduisent des PV. Un sacrifice temporaire vaut la moitié des points et ne coûte que ${COUT_PV_SACRIFICE_TEMP} PV ; il se récupère avec les points de magie.</p>`;
     }
     if (k === 'portesac') {
       const slots = SAC.map((opts, i) => {
@@ -302,7 +302,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     const pied = `<div class="minuit"><button class="btn" data-minuit="1" ${nbTemp ? '' : 'disabled'} title="Les points de magie reviennent à minuit, et avec eux les parties sacrifiées temporairement">🌑 Minuit : récupérer ${nbTemp ? `(${nbTemp})` : ''}</button></div>${hist ? `<ul class="hist">${hist}</ul>` : ''}`;
     if (!l.length) return `<div class="prep vide"><span class="lbl">PRÉPARER UN SACRIFICE</span><p class="none" style="margin:4px 0 0">Choisissez les parties à offrir, puis lancez le d12 à la table.</p></div>${pied}`;
     const S = l.reduce((a, x) => a + x.v, 0), seuil = int(C.seuilSorcier);
-    const coutPV = l.filter(x => x.m === 'temp').length * COUT_PV_SACRIFICE_TEMP;
+    const coutPV = l.reduce((a, x) => a + (x.m === 'temp' ? COUT_PV_SACRIFICE_TEMP : x.v), 0);
     let chance = '';
     if (seuil != null) {
       const need = seuil - S + 1, faces = need <= 1 ? 12 : need > 12 ? 0 : 13 - need;
@@ -312,7 +312,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
       <ul>${l.map(x => `<li><span>${esc(x.z.n)}</span><span class="m m-${x.m}">${x.m === 'temp' ? 'temporaire' : 'définitif'}</span><b>${x.v}</b><button class="x" data-prepa="${x.z.k}" data-mode="" aria-label="Retirer">×</button></li>`).join('')}</ul>
       <div class="tot">Sacrifices <b>${S}</b> <label>Seuil <input class="in num" id="f-seuil" data-k="seuilSorcier" inputmode="numeric" value="${esc(C.seuilSorcier ?? '')}" placeholder="/20"></label></div>
       <div class="chance">${seuil == null ? 'Indiquez le seuil fixé par le MJ.' : chance}</div>
-      ${coutPV ? `<div class="cout">Coût : <b>${coutPV} PV</b>${l.some(x => x.m === 'def') ? ' · pertes définitives appliquées' : ''}</div>` : l.some(x => x.m === 'def') ? '<div class="cout">Les pertes définitives seront appliquées à la fiche.</div>' : ''}
+      <div class="cout">Coût : <b>${coutPV} PV</b>${l.some(x => x.m === 'def') ? ' · pertes définitives appliquées à la fiche' : ''}</div>
       <div class="row"><button class="btn primary" data-sacrifier="1">Sacrifier</button><button class="btn ghost" data-annulerprepa="1">Annuler</button></div></div>${pied}`;
   }
   const renderSorc = () => {
@@ -324,13 +324,16 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
   function journal(t) { C.sacrifices = [{ d: new Date().toISOString(), t }, ...(C.sacrifices || [])].slice(0, 20); }
   function sacrifier() {
     const l = Object.entries(prepa); if (!l.length) return;
-    const M = maxEffectifs(C), nbT = l.filter(([, m]) => m === 'temp').length;
+    const M = maxEffectifs(C);
+    // Temporaire : 2 PV ; définitif : autant de PV que les points de la partie (guide de jeu)
+    const cout = l.reduce((a, [k, m]) => a + (m === 'temp' ? COUT_PV_SACRIFICE_TEMP : infoZone(ZONES_CORPS.find(z => z.k === k)).tot), 0);
+    const pvAvant = M.pv != null ? actuel(C, 'pv', M.pv) : null;
     l.forEach(([k, m]) => { C.corps[k] = { ...(C.corps[k] || {}), etat: m }; });
-    if (nbT && M.pv != null) C.cur.pv = Math.max(0, actuel(C, 'pv', M.pv) - nbT * COUT_PV_SACRIFICE_TEMP);
+    if (cout && pvAvant != null) C.cur.pv = Math.max(0, pvAvant - cout);
     journal(l.map(([k, m]) => `${ZONES_CORPS.find(z => z.k === k).n} (${m === 'temp' ? 'temp.' : 'définitif'})`).join(', '));
     const ranges = rangerBloques(C);
     prepa = {}; persist(); renderClass(); renderDerived(); renderEquip();
-    toast(`Sacrifice accompli${nbT ? ` · −${nbT * COUT_PV_SACRIFICE_TEMP} PV` : ''}${ranges.length ? ` · ${ranges.join(', ')} rangé${ranges.length > 1 ? 's' : ''}` : ''}`);
+    toast(`Sacrifice accompli${cout ? ` · −${cout} PV` : ''}${ranges.length ? ` · ${ranges.join(', ')} rangé${ranges.length > 1 ? 's' : ''}` : ''}`);
   }
   function minuit() {
     const rec = ZONES_CORPS.filter(z => C.corps[z.k]?.etat === 'temp');
