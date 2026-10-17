@@ -14,6 +14,8 @@ Le site est statique (HTML, CSS, JavaScript, sans outil de compilation) : il s'h
 
 Le script peut être relancé sans risque : il ne supprime aucune donnée. Après une mise à jour du site qui modifie `schema.sql` (comme l'ajout de l'armurerie), relancez-le simplement.
 
+Catalogue de départ : `supabase/catalogue-armes.sql` (53 armes, munitions, bombes) et `supabase/catalogue-armures.sql` (30 armures et protections), à lancer de la même façon. Relancés, ils n'ajoutent pas de doublon et complètent l'emplacement des objets qui n'en ont pas.
+
 ### 2. Brancher la connexion Discord
 1. Allez sur <https://discord.com/developers/applications> › **New Application** (nom : « Ayesha », par exemple).
 2. Dans **OAuth2** :
@@ -64,7 +66,16 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 - *Catalogue* (MJ) : ajouter, modifier, masquer ou supprimer des objets. Catégories : arme, armure, consommable, équipement, artefact. Un objet masqué n'apparaît pas en boutique : pratique pour préparer un artefact avant sa découverte.
 - *Comptes des joueurs* (MJ) : créditer ou retirer un montant à un joueur, ou à tous d'un coup, avec un motif. Le relevé de chaque joueur est consultable.
 - *Boutique* (joueurs) : solde, relevé, achats. Le solde est aussi affiché en haut de chaque page et se met à jour en direct quand le MJ crédite.
-- Un achat débite le compte et ajoute l'objet à la fiche : armes et armures dans leurs tableaux, le reste dans *Objets & consommables*. Les consommables ont un bouton « Utiliser » qui retire 1 ; à 0, l'objet disparaît.
+- Un achat débite le compte et range l'objet dans l'**inventaire** de la fiche. Les consommables ont un bouton « Utiliser » qui retire 1 ; à 0, l'objet disparaît.
+- Chaque objet du catalogue a un **emplacement** (une main, deux mains, bouclier, tête, corps — dessous, corps — dessus, gants, pieds, cou, visage, poignet, ou « ne s'équipe pas »).
+
+**Équipement** (section *Équipement porté* de la fiche) :
+- Seul ce qui est porté compte. Le joueur clique sur « Équiper » dans l'inventaire ; si l'emplacement est occupé, l'ancien objet retourne dans l'inventaire. Trois blousons peuvent dormir dans le sac, un seul est porté.
+- Le corps a deux couches : *dessous* (gilet pare-balles, chemise de mailles…) et *dessus* (bure, manteau, armure lourde).
+- Les armes ne comptent qu'en main : deux mains au plus ; une arme à deux mains les prend toutes les deux, un bouclier en prend une.
+- La fiche additionne la réduction et le malus de DEX de l'équipement porté, et affiche la DEX en armure.
+- Les objets ajoutés à la main suivent la même règle (il faut leur choisir un emplacement).
+- Les fiches enregistrées avant cette version sont converties à leur ouverture : armes et armure portées, objets dans l'inventaire.
 - Le solde est protégé : il n'est pas dans la fiche, seul le MJ peut l'alimenter, et la base refuse tout achat sans fonds suffisants. La fiche, elle, reste librement modifiable (un joueur peut toujours ajouter un objet à la main).
 
 **Sauvegarde** : automatique, en ligne. L'état est affiché au-dessus de la fiche. En cas de coupure, une copie reste sur l'appareil et l'envoi reprend tout seul. Si la fiche a été modifiée entre-temps depuis un autre appareil, le site demande quelle version garder.
@@ -85,6 +96,7 @@ js/core/                 socle : connexion (auth.js), routeur (router.js), outil
 js/shared/regles.js      règles d'Ayesha (caractéristiques, classes, sac, sorts…)
 js/shared/personnage.js  modèle du personnage, calculs, lecture et enregistrement en ligne
 js/shared/banque.js      comptes, achats, catalogue, format des euros, temps réel
+js/shared/equipement.js  inventaire, emplacements, équiper / ranger / utiliser, totaux
 js/modules/index.js      LISTE DES MODULES (c'est ici qu'on en ajoute)
 js/modules/*.js          accueil, grimoire, armurerie, table (MJ)
 js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), index.js (page)
