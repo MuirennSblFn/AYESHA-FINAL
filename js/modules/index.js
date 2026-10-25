@@ -20,6 +20,8 @@ import notes from './notes.js';
 export const MODULES = [
   accueil,
   grimoire,
+  // Section prévue, de même rang que le Grimoire : affichée « bientôt » sur la page d'accueil
+  { id: 'factions', bientot: true, carte: { titre: 'Factions', texte: 'Les groupes, ordres et cours qui croisent le chemin des Gris : alliés, rivaux, ennemis.' } },
   regles,
   fiche,
   notes,

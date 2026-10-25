@@ -140,7 +140,7 @@ supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat s�
 vendor/                  bibliothèque Supabase (version figée, pas de dépendance à un CDN)
 ```
 
-### Ajouter une section (Centre de formation…)
+### Ajouter une section (Factions, Centre de formation…)
 1. Créer `js/modules/formation.js` sur le modèle de `accueil.js` (ou de `armurerie.js` pour un exemple complet) : un objet `{ id, titre, acces, nav, carte, mount(el, ctx) }` (le contrat complet est décrit en tête de `js/core/router.js`).
 2. Dans `js/modules/index.js`, l'importer et remplacer la ligne « bientôt » correspondante.
 3. Pour lire ou modifier le personnage du joueur : `personnage.charger()` puis `personnage.modifie(data)` (voir `js/shared/personnage.js`). Les règles communes sont dans `js/shared/regles.js`.
