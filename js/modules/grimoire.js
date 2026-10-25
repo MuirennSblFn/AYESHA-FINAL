@@ -38,7 +38,7 @@ function readField(f, d) {
 }
 function readSection(s, num, d, o = {}) {
   const inner = s.f.map(f => readField(f, d || {})).join('');
-  return `<section class="sec${o.voilee ? ' veiled' : ''}"><h3><span class="rn">${roman(num)}.</span>${esc(s.t)}${s.s ? `<span class="sub">${esc(s.s)}</span>` : ''}${o.badge || ''}</h3>${inner || '<p class="blank">Page blanche.</p>'}${o.extra || ''}</section>`;
+  return `<section class="sec${o.voilee ? ' veiled' : ''}"><h3><span class="rn">${roman(num)}.</span>${esc(s.t)}${s.s ? `<span class="sub">${esc(s.s)}</span>` : ''}${o.badge || ''}</h3>${inner || o.vide || '<p class="blank">Page blanche.</p>'}${o.extra || ''}</section>`;
 }
 function texteDiscord(e) {
   const j = e.j || {};
@@ -84,7 +84,7 @@ function editField(f, d) {
   return `<div class="field">${lab}${c}</div>`;
 }
 function editSection(s, i, d, e) {
-  return `<section class="sec"><h3><span class="rn">${roman(i + 1)}.</span>${esc(s.t)}${s.s ? `<span class="sub">${esc(s.s)}</span>` : ''}<label class="choice vis"><input type="checkbox" id="v-${s.id}" data-vis-in="${s.id}" ${visOf(e, s) ? 'checked' : ''}><span>Visible des joueurs</span></label></h3>${s.f.map(f => editField(f, d)).join('')}</section>`;
+  return `<section class="sec" id="ed-${s.id}"><h3><span class="rn">${roman(i + 1)}.</span>${esc(s.t)}${s.s ? `<span class="sub">${esc(s.s)}</span>` : ''}<label class="choice vis"><input type="checkbox" id="v-${s.id}" data-vis-in="${s.id}" ${visOf(e, s) ? 'checked' : ''}><span>Visible des joueurs</span></label></h3>${s.f.map(f => editField(f, d)).join('')}</section>`;
 }
 function collect(form, sections) {
   const out = {};
@@ -133,7 +133,7 @@ export default {
     const MJ = auth.isMJ;
     const st = { sel: null, mode: 'read', q: '', fam: '', vueJoueur: false, entries: [], byId: new Map(), obs: [], source: 'base', publishedAt: null, erreur: null, alerteMJ: null, sale: false };
     let nomPerso = '';
-    const route = p => { st.mode = p[0] === 'nouvelle' ? 'new' : p[1] === 'reecrire' ? 'edit' : 'read'; st.sel = p[0] === 'nouvelle' ? null : (p[0] || null); };
+    const route = p => { st.mode = p[0] === 'nouvelle' ? 'new' : p[1] === 'reecrire' ? 'edit' : 'read'; st.sel = p[0] === 'nouvelle' ? null : (p[0] || null); st.cible = st.mode === 'edit' ? (p[2] || null) : null; };
     route(params);
     try { st.vueJoueur = localStorage.getItem('ayesha.grimoire.vueJoueur') === '1'; } catch (e) {}
     root.innerHTML = '<div class="loading">Ouverture du grimoire…</div>';
@@ -220,6 +220,8 @@ export default {
     }
 
     /* ----- Vue MJ d'une entrée ----- */
+    const crayon = (e, s) => `<a class="ed-t" href="#/grimoire/${encodeURIComponent(e.id)}/reecrire/${s.id}" title="Modifier « ${esc(s.t)} »" aria-label="Modifier ${esc(s.t)}">✎</a>`;
+    const remplir = (e, s) => `<p class="blank"><a class="linkbtn" href="#/grimoire/${encodeURIComponent(e.id)}/reecrire/${s.id}">Page blanche : remplir cette section</a></p>`;
     const badgeVis = (e, s) => { const on = visOf(e.entree, s); return `<button class="vis-t" data-vis="${s.id}" aria-pressed="${on}" title="Cliquer pour ${on ? 'voiler' : 'révéler'} cette section aux joueurs">${on ? 'Visible des joueurs' : 'Voilée'}</button>`; };
     function renderMJ(e) {
       const bascule = `<div class="vuebar" role="group" aria-label="Affichage"><button class="chip" data-vue="mj" aria-pressed="${!st.vueJoueur}">Vue MJ</button><button class="chip" data-vue="joueur" aria-pressed="${st.vueJoueur}">Ce que voient les joueurs</button></div>`;
@@ -237,9 +239,9 @@ export default {
             <div class="row"><button class="mini" data-verser="${o.id}">Verser dans les Notes des Gris</button><button class="linkbtn" data-ecarter="${o.id}">Écarter</button></div></div>`).join('')}</div>` : ''}
         <div class="orn" style="margin-top:28px">${ORN}</div>
         <h2 class="part-title" style="margin-top:4px">I. Ce que dit le Grimoire</h2><p class="part-sub">PARTIE JOUEURS</p>
-        ${SECTIONS_J.map((s, i) => readSection(s, i + 1, e.entree, { badge: badgeVis(e, s), voilee: !visOf(e.entree, s), extra: s.id === 'notes' ? noteForm : '' })).join('')}
+        ${SECTIONS_J.map((s, i) => readSection(s, i + 1, e.entree, { badge: crayon(e, s) + badgeVis(e, s), vide: remplir(e, s), voilee: !visOf(e.entree, s), extra: s.id === 'notes' ? noteForm : '' })).join('')}
         <div class="mj"><div class="orn">${ORN}</div><h2 class="part-title">II. Profil technique</h2><p class="part-sub">RÉSERVÉ AU MJ · RÉVÉLEZ SECTION PAR SECTION</p>
-        ${SECTIONS_MJ.map((s, i) => readSection(s, i + 1, e.profil, { badge: badgeVis(e, s), voilee: !visOf(e.entree, s) })).join('')}</div>`;
+        ${SECTIONS_MJ.map((s, i) => readSection(s, i + 1, e.profil, { badge: crayon(e, s) + badgeVis(e, s), vide: remplir(e, s), voilee: !visOf(e.entree, s) })).join('')}</div>`;
     }
 
     /* ----- Formulaire ----- */
@@ -449,11 +451,18 @@ export default {
     const avantDepart = ev => { if (st.sale) { garderBrouillon(); ev.preventDefault(); ev.returnValue = ''; } };
     window.addEventListener('beforeunload', avantDepart);
 
-    render();
+    function allerCible() {
+      const c = st.cible && $('#ed-' + st.cible, root);
+      if (!c) { window.scrollTo(0, 0); return; }
+      c.scrollIntoView({ block: 'start' }); window.scrollBy(0, -80);
+      const champ = c.querySelector('input:not([type=checkbox]):not([type=radio]),textarea'); if (champ) champ.focus({ preventScroll: true });
+      c.classList.add('cible'); setTimeout(() => c.classList.remove('cible'), 1600);
+    }
+    render(); requestAnimationFrame(allerCible);
     if (st.sel && !st.byId.has(st.sel) && !st.erreur) toast('Cette entrée n’existe pas ou plus.');
 
     return {
-      update(p) { garderBrouillon(); route(p); render(); window.scrollTo(0, 0); },
+      update(p) { garderBrouillon(); route(p); render(); allerCible(); },
       unmount() { garderBrouillon(); window.removeEventListener('beforeunload', avantDepart); },
     };
   },

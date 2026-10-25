@@ -162,3 +162,9 @@
   .m-grimoire .vuebar{margin-top:-6px;flex-wrap:wrap}
   .m-grimoire .vis{margin-left:0}
 }
+.m-grimoire .ed-t{margin-left:auto;align-self:center;text-decoration:none;font-size:.9rem;line-height:1;padding:3px 7px;border:1px solid var(--rule);border-radius:20px;color:var(--ink-soft)}
+.m-grimoire .ed-t:hover{border-color:var(--gilt);color:var(--gilt)}
+.m-grimoire .ed-t+.vis-t{margin-left:0}
+.m-grimoire .blank .linkbtn{font-style:italic}
+.m-grimoire .edit .sec.cible{animation:cible 1.6s ease-out}
+@keyframes cible{from{background:var(--gilt-soft)}to{background:transparent}}
