@@ -2,7 +2,7 @@
 
 Un seul site pour la table : le **Grimoire de la Brume** (public) et la **fiche de personnage** de chaque joueur, enregistrée sur son compte (connexion Discord). Le MJ consulte toutes les fiches depuis **La table**.
 
-Le site est statique (HTML, CSS, JavaScript, sans outil de compilation) : il s'héberge sur GitHub Pages. Les comptes et les fiches sont stockés dans **Supabase**.
+Le site est statique (HTML, CSS, JavaScript, sans outil de compilation) : il s'héberge sur GitHub Pages. Les comptes, les fiches et le Grimoire sont stockés dans **Supabase**.
 
 ---
 
@@ -13,6 +13,8 @@ Le site est statique (HTML, CSS, JavaScript, sans outil de compilation) : il s'h
 2. Collez tout le contenu de `supabase/schema.sql`, puis cliquez sur **Run**.
 
 Le script peut être relancé sans risque : il ne supprime aucune donnée. Après une mise à jour du site qui modifie `schema.sql` (comme l'ajout de l'armurerie), relancez-le simplement.
+
+Grimoire : `supabase/grimoire-import.sql`, à lancer une fois après `schema.sql`.
 
 Catalogue de départ : `supabase/catalogue-armes.sql` (53 armes, munitions, bombes) et `supabase/catalogue-armures.sql` (30 armures et protections), à lancer de la même façon. Relancés, ils n'ajoutent pas de doublon et complètent l'emplacement des objets qui n'en ont pas.
 
@@ -53,7 +55,15 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 
 ## Utilisation au quotidien
 
-**Mettre à jour le Grimoire** : comme avant, remplacez le contenu de `grimoire.json` par le code copié depuis le bouton « Publier pour les joueurs » du Grimoire du Maître.
+**Grimoire de la Brume** (onglet *Grimoire*) : tout se fait sur le site, sans GitHub ni copier-coller.
+- Les visiteurs et les joueurs lisent les entrées publiées, et seulement les sections marquées « Visible des joueurs ».
+- Le MJ, connecté, voit l'exemplaire complet : bouton « ＋ Nouvelle entrée », « Réécrire l'entrée », profil technique (caractéristiques, attaques, secrets…), interrupteur « Publiée / Brouillon », pastille « Visible des joueurs / Voilée » sur chaque section, « Consigner une note » dans les Notes des Gris.
+- « Ce que voient les joueurs » montre l'entrée exactement comme les joueurs la lisent.
+- Ce qui est publié est visible immédiatement. Le tri est fait par la base elle-même : un joueur ne peut pas lire une section voilée, même en fouillant le code de la page.
+- Les joueurs connectés envoient leurs observations depuis une entrée ; le MJ les voit (pastille rouge dans le sommaire) et les verse dans les Notes des Gris en un clic, ou les écarte.
+- Une réécriture non scellée est gardée sur l'appareil et proposée au retour.
+- Mise en place : lancer `supabase/grimoire-import.sql` après `schema.sql` (reprend les 4 entrées et le profil du Feu-Follet). Pour les profils techniques restés dans un Grimoire du Maître local : bouton « Sauvegarder » de celui-ci, puis « Importer une sauvegarde du Grimoire du Maître » en bas du sommaire (choix « Compléter » : n'écrase rien).
+- Tant que la base du Grimoire est vide, le site affiche encore l'ancien `grimoire.json`.
 
 **Joueurs** : ils ouvrent le site, cliquent sur *Se connecter*, puis *Ma fiche*. À la première visite, ils peuvent :
 - créer un nouveau personnage ;
@@ -103,7 +113,7 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 
 ```
 index.html               page unique : charge les styles et js/main.js
-grimoire.json            contenu du Grimoire (publié depuis le Grimoire du Maître)
+grimoire.json            ancien contenu du Grimoire (affiché seulement tant que la base est vide)
 css/base.css             couleurs, barre du haut, boutons, fenêtres, accueil
 css/grimoire.css         styles du module Grimoire
 css/fiche.css            styles de la fiche, de La table et de l'impression
@@ -122,10 +132,11 @@ js/shared/banque.js      comptes, achats, catalogue, format des euros, temps ré
 js/shared/equipement.js  inventaire, emplacements, équiper / ranger / utiliser, totaux
 js/shared/lexique.js     lexique de l'ancien langage (lecture, recherche, gestion MJ)
 js/shared/notes.js       notes de session (lecture, enregistrement)
+js/shared/grimoire.js    canevas des entrées du Grimoire, lecture/écriture, observations
 js/modules/index.js      LISTE DES MODULES (c'est ici qu'on en ajoute)
 js/modules/*.js          accueil, grimoire, regles, notes, lexique, armurerie, table (MJ)
 js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), corps.js (pantin du Sorcier), index.js (page)
-supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), notes, maintien en éveil
+supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), notes, grimoire, maintien en éveil
 vendor/                  bibliothèque Supabase (version figée, pas de dépendance à un CDN)
 ```
 

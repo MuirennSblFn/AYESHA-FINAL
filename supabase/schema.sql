@@ -265,6 +265,131 @@ drop policy if exists "notes : les siennes" on public.notes;
 create policy "notes : les siennes" on public.notes
   for all using (owner = auth.uid()) with check (owner = auth.uid());
 
+-- ---------- Grimoire de la Brume ----------
+-- grimoire : l'exemplaire du MJ (entrée complète + profil technique). MJ seulement.
+-- grimoire_public : ce que lisent les joueurs. La base le recalcule elle-même à chaque
+-- modification : seules les entrées publiées et les sections « visibles des joueurs »
+-- y sont copiées. Le profil technique voilé ne quitte donc jamais la table du MJ.
+create table if not exists public.grimoire (
+  id          text primary key default replace(gen_random_uuid()::text, '-', ''),
+  numero      int,
+  publie      boolean not null default false,
+  entree      jsonb not null default '{}'::jsonb,   -- nom, famille…, champs joueurs, vis, notes
+  profil      jsonb not null default '{}'::jsonb,   -- profil technique (stats, attaques, secrets…)
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+drop trigger if exists grimoire_touch on public.grimoire;
+create trigger grimoire_touch before update on public.grimoire
+  for each row execute function public.touch_updated_at();
+alter table public.grimoire enable row level security;
+drop policy if exists "grimoire : MJ" on public.grimoire;
+create policy "grimoire : MJ" on public.grimoire
+  for all using (public.is_mj()) with check (public.is_mj());
+
+create table if not exists public.grimoire_public (
+  id          text primary key,
+  numero      int,
+  data        jsonb not null,
+  updated_at  timestamptz not null default now()
+);
+alter table public.grimoire_public enable row level security;
+drop policy if exists "grimoire public : lire" on public.grimoire_public;
+create policy "grimoire public : lire" on public.grimoire_public for select using (true);
+-- (aucune règle d'écriture : seule la fonction ci-dessous y écrit)
+
+create or replace function public.grimoire_publier()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  -- sections dans l'ordre, et les champs de chacune (miroir de js/shared/grimoire.js)
+  sections constant jsonb := '[
+    ["desc",       false, ["apparence","taille"]],
+    ["brume",      false, ["percu","explication"]],
+    ["origines",   false, ["origines"]],
+    ["habitat",    false, ["milieux","lieux"]],
+    ["moeurs",     false, ["activite","social","alimentation","communication"]],
+    ["equilibre",  false, ["attitude","bascule"]],
+    ["signes",     false, ["signes"]],
+    ["faiblesses", false, ["faiblesses"]],
+    ["protections",false, ["prevenir","repousser"]],
+    ["rumeurs",    false, ["rumeurs"]],
+    ["notes",      false, ["notes"]],
+    ["stats",      true,  ["stats"]],
+    ["attaques",   true,  ["attaques"]],
+    ["reactions",  true,  ["reactions","reactionAutre"]],
+    ["pouvoirs",   true,  ["pouvoirs"]],
+    ["vuln",       true,  ["vArmes","vInefficaces","vMots","vAutres"]],
+    ["resist",     true,  ["resistances"]],
+    ["sante",      true,  ["smRencontre","smPouvoirs"]],
+    ["butin",      true,  ["butin"]],
+    ["mots",       true,  ["motsApprendre"]],
+    ["secrets",    true,  ["secrets"]]
+  ]'::jsonb;
+  s jsonb; sid text; est_mj boolean; visible boolean; f text;
+  e jsonb; p jsonb; vis jsonb;
+  sj jsonb := '[]'::jsonb; sm jsonb := '[]'::jsonb; j jsonb := '{}'::jsonb; m jsonb := '{}'::jsonb;
+begin
+  if tg_op = 'DELETE' then
+    delete from public.grimoire_public where id = old.id; return old;
+  end if;
+  if tg_op = 'UPDATE' and old.id <> new.id then
+    delete from public.grimoire_public where id = old.id;
+  end if;
+  if not new.publie then
+    delete from public.grimoire_public where id = new.id; return new;
+  end if;
+  e := coalesce(new.entree, '{}'::jsonb); p := coalesce(new.profil, '{}'::jsonb);
+  vis := case when jsonb_typeof(e->'vis') = 'object' then e->'vis' else '{}'::jsonb end;
+  for s in select * from jsonb_array_elements(sections) loop
+    sid := s->>0; est_mj := (s->>1)::boolean;
+    visible := case when jsonb_typeof(vis->sid) = 'boolean' then (vis->>sid)::boolean else not est_mj end;
+    continue when not visible;
+    for f in select * from jsonb_array_elements_text(s->2) loop
+      if est_mj then
+        if p ? f then m := m || jsonb_build_object(f, p->f); end if;
+      else
+        if e ? f then j := j || jsonb_build_object(f, e->f); end if;
+      end if;
+    end loop;
+    if est_mj then sm := sm || to_jsonb(sid); else sj := sj || to_jsonb(sid); end if;
+  end loop;
+  insert into public.grimoire_public (id, numero, data, updated_at)
+  values (new.id, new.numero, jsonb_build_object(
+      'id', new.id, 'numero', new.numero,
+      'nom', coalesce(e->>'nom', ''), 'autresNoms', coalesce(e->>'autresNoms', ''),
+      'famille', coalesce(e->>'famille', ''), 'familleAutre', coalesce(e->>'familleAutre', ''),
+      'connaissance', coalesce(e->>'connaissance', ''), 'redacteur', coalesce(e->>'redacteur', ''),
+      'maj', coalesce(e->>'maj', ''), 'secJ', sj, 'secM', sm, 'j', j, 'm', m), now())
+  on conflict (id) do update set numero = excluded.numero, data = excluded.data, updated_at = now();
+  return new;
+end $$;
+drop trigger if exists grimoire_sync on public.grimoire;
+create trigger grimoire_sync after insert or update or delete on public.grimoire
+  for each row execute function public.grimoire_publier();
+-- (re)calcule la version joueurs des entrées déjà présentes (utile après une mise à jour du site)
+update public.grimoire set publie = publie;
+
+-- Observations proposées par les joueurs, que le MJ verse (ou non) dans les Notes des Gris
+create table if not exists public.grimoire_observations (
+  id          uuid primary key default gen_random_uuid(),
+  entree_id   text not null references public.grimoire(id) on delete cascade,
+  owner       uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  perso       text not null default '',
+  date_obs    date,
+  texte       text not null check (length(trim(texte)) > 0),
+  created_at  timestamptz not null default now()
+);
+alter table public.grimoire_observations enable row level security;
+drop policy if exists "observations : lire"     on public.grimoire_observations;
+drop policy if exists "observations : proposer" on public.grimoire_observations;
+drop policy if exists "observations : retirer"  on public.grimoire_observations;
+create policy "observations : lire" on public.grimoire_observations
+  for select using (owner = auth.uid() or public.is_mj());
+create policy "observations : proposer" on public.grimoire_observations
+  for insert with check (owner = auth.uid() and exists (select 1 from public.grimoire_public g where g.id = entree_id));
+create policy "observations : retirer" on public.grimoire_observations
+  for delete using (owner = auth.uid() or public.is_mj());
+
 -- ---------- Maintien en éveil ----------
 -- Supabase met en pause un projet gratuit resté inactif une semaine.
 -- Le workflow GitHub .github/workflows/keepalive.yml appelle cette fonction tous les 2 jours.

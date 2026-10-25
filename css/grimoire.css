@@ -105,3 +105,60 @@
   .m-grimoire .statgrid .v{font-size:1.2rem}
   .m-grimoire .obs .grid{grid-template-columns:1fr}
 }
+
+/* ----- Exemplaire du MJ : édition, visibilité, observations ----- */
+.m-grimoire .index>.btn.primary{justify-content:center}
+.m-grimoire .toc .pubmark{color:var(--gilt)}
+.m-grimoire .obsbadge{font-family:var(--f-label);font-weight:700;font-size:.72rem;min-width:1.6em;height:1.6em;display:inline-grid;place-items:center;border-radius:20px;background:var(--sang);color:var(--page)}
+.m-grimoire .mjfoot{margin-top:auto;padding-top:10px;border-top:1px dotted var(--rule);font-size:.86rem}
+.m-grimoire .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.m-grimoire .row.center{justify-content:center}
+.m-grimoire .vuebar{display:flex;justify-content:center;gap:6px;margin:-20px 0 22px}
+.m-grimoire .banner{text-align:center}
+.m-grimoire .vis-t{margin-left:auto;font-family:var(--f-label);font-size:.66rem;letter-spacing:.1em;font-weight:700;border:1px solid var(--rule);background:transparent;padding:2px 9px;border-radius:20px;color:var(--ink-faint);align-self:center}
+.m-grimoire .vis-t[aria-pressed="true"]{color:var(--gilt);border-color:var(--gilt);background:var(--gilt-soft)}
+.m-grimoire .vis-t:hover{border-color:var(--gilt)}
+.m-grimoire .sec.veiled>*:not(h3){opacity:.5}
+.m-grimoire .pub[aria-pressed="true"]{border-color:var(--gilt);color:var(--ink);background:var(--gilt-soft)}
+.m-grimoire .pub[aria-pressed="false"]{color:var(--ink-soft)}
+.m-grimoire .obsmj{margin:24px 0 0;border:1px solid var(--sang);background:var(--sang-soft);padding:12px 16px}
+.m-grimoire .obsmj h3{font-family:var(--f-fell);font-weight:400;font-size:1.15rem;margin:0 0 8px;color:var(--sang)}
+.m-grimoire .obsmj h3 small{font-family:var(--f-label);font-size:.75rem}
+.m-grimoire .obsmj .note{border-left-color:var(--sang);margin-bottom:12px}
+.m-grimoire .obsliste{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.m-grimoire .obsliste .linkbtn,.m-grimoire .obsmj .linkbtn{margin-left:8px;font-family:var(--f-label);font-size:.74rem;letter-spacing:.06em;border-bottom:0}
+.m-grimoire .addnote{margin-top:12px;display:grid;grid-template-columns:9.5em 1fr;gap:6px}
+.m-grimoire .addnote .ta{grid-column:1/-1;min-height:3em}
+.m-grimoire .addnote .btn{justify-self:start}
+.m-grimoire .in.big{font-family:var(--f-display);font-size:1.6rem;text-align:center;padding:8px}
+.m-grimoire .in.num{width:5.5em;text-align:center;font-variant-numeric:tabular-nums}
+.m-grimoire .edit .eyebrow .in.num{display:inline-block;width:4.5em;padding:2px 4px}
+.m-grimoire .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.m-grimoire .choices{display:flex;flex-wrap:wrap;gap:6px}
+.m-grimoire .choice{position:relative}
+.m-grimoire .choice input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.m-grimoire .choice span{display:inline-block;font-family:var(--f-label);font-size:.8rem;letter-spacing:.05em;padding:4px 11px;border:1px solid var(--rule);border-radius:2px;background:var(--page-2)}
+.m-grimoire .choice input:checked+span{border-color:var(--gilt);background:var(--gilt-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--gilt)}
+.m-grimoire .choice input:focus-visible+span{outline:2px solid var(--gilt);outline-offset:2px}
+.m-grimoire .vis{margin-left:auto;align-self:center}
+.m-grimoire .vis span{font-size:.68rem;padding:2px 9px;border-radius:20px}
+.m-grimoire .lrow{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
+.m-grimoire .rrow{display:grid;gap:6px;align-items:start;margin-bottom:6px}
+.m-grimoire .rrow .ta{min-height:2.4em}
+.m-grimoire .x{border:1px solid var(--rule);background:transparent;width:34px;height:34px;flex:none;border-radius:2px;color:var(--ink-soft);font-size:1.1rem;line-height:1}
+.m-grimoire .x:hover{color:var(--sang);border-color:var(--sang)}
+.m-grimoire .add{font-family:var(--f-label);font-size:.78rem;letter-spacing:.08em;background:none;border:1px dashed var(--rule);padding:5px 12px;border-radius:2px;color:var(--ink-soft);font-weight:700}
+.m-grimoire .add:hover{border-color:var(--gilt);color:var(--ink)}
+.m-grimoire .colhead{font-family:var(--f-label);font-size:.68rem;letter-spacing:.1em;color:var(--ink-faint);font-weight:700}
+.m-grimoire .statedit{display:flex;flex-wrap:wrap;gap:12px}
+.m-grimoire .statedit label{display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--f-label);font-size:.72rem;letter-spacing:.12em;color:var(--ink-soft);font-weight:700}
+.m-grimoire .savebar{position:sticky;bottom:0;z-index:4;max-width:780px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border:1px solid var(--rule);border-bottom:0}
+.m-grimoire .savebar .spacer{flex:1}
+@media (max-width:860px){
+  .m-grimoire .grid2,.m-grimoire .addnote{grid-template-columns:1fr}
+  .m-grimoire .rrow{grid-template-columns:1fr!important;padding-bottom:8px;border-bottom:1px dotted var(--rule)}
+  .m-grimoire .rrow.colhead{display:none}
+  .m-grimoire .rrow .x{justify-self:end}
+  .m-grimoire .vuebar{margin-top:-6px;flex-wrap:wrap}
+  .m-grimoire .vis{margin-left:0}
+}
