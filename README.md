@@ -101,6 +101,12 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 - « Minuit » récupère les parties sacrifiées temporairement et restaure les points de magie.
 - Les pertes définitives s'appliquent : malus de caractéristiques, PV ou SM maximum réduits, emplacements d'équipement inutilisables (l'équipement concerné est rangé). Les règles sont dans `PERTES` (js/shared/regles.js), modifiables.
 
+**Factions** (onglet *Factions*) : le registre des groupes qui croisent le chemin des Gris, sur le modèle du Grimoire (mêmes boutons, mêmes règles de visibilité, observations des joueurs).
+- En-tête : nature, type de groupe, rapport aux Gris (allié → hostile), entente sur 10, connaissance, emblème.
+- Partie joueurs : présentation, rapport à la Brume, à l'équilibre, territoire, membres connus, magie, signes de reconnaissance, ce qu'on peut obtenir d'eux, rumeurs, historique avec les Gris (avec l'entente après chaque événement).
+- Dossier du MJ : objectifs réels, organisation, ressources, plans en cours (avancement sur 6), liens vers les entités du Grimoire, alliances et rivalités avec les autres factions, accroches de scénario, secrets.
+- Les liens vers le Grimoire ou d'autres factions sont cliquables ; un joueur ne voit que ceux qui mènent à des fiches publiées.
+
 **Règles** (onglet *Règles*, public) : le guide de jeu général, lisible sans connexion. Sommaire cliquable qui suit la lecture, recherche dans tout le texte (sans se soucier des accents), lien direct vers chaque partie (bouton ¶ à côté d'un titre, ex. `#/regles/sorciers`). Le texte est dans `contenu/regles.html` : on peut le corriger directement (les consignes sont en tête du fichier).
 
 **Notes** (onglet *Notes*) : le carnet de session de chaque joueur. Une note par session (titre, date, texte libre), enregistrement automatique, recherche, export en fichier texte. Les notes sont privées : ni les autres joueurs ni le MJ ne les voient. Nécessite d'avoir relancé `schema.sql` après la mise à jour.
@@ -115,7 +121,7 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 index.html               page unique : charge les styles et js/main.js
 grimoire.json            ancien contenu du Grimoire (affiché seulement tant que la base est vide)
 css/base.css             couleurs, barre du haut, boutons, fenêtres, accueil
-css/grimoire.css         styles du module Grimoire
+css/codex.css            styles des codex (Grimoire, Factions)
 css/fiche.css            styles de la fiche, de La table et de l'impression
 css/armurerie.css        styles de l'armurerie
 css/lexique.css          styles du lexique et des outils du Magicien
@@ -132,15 +138,20 @@ js/shared/banque.js      comptes, achats, catalogue, format des euros, temps ré
 js/shared/equipement.js  inventaire, emplacements, équiper / ranger / utiliser, totaux
 js/shared/lexique.js     lexique de l'ancien langage (lecture, recherche, gestion MJ)
 js/shared/notes.js       notes de session (lecture, enregistrement)
-js/shared/grimoire.js    canevas des entrées du Grimoire, lecture/écriture, observations
+js/shared/codex.js       moteur commun des codex : fiches joueurs / MJ, édition, publication, observations
+js/shared/grimoire.js    canevas des entrées du Grimoire
+js/shared/factions.js    canevas des fiches de faction
 js/modules/index.js      LISTE DES MODULES (c'est ici qu'on en ajoute)
-js/modules/*.js          accueil, grimoire, regles, notes, lexique, armurerie, table (MJ)
+js/modules/*.js          accueil, grimoire, factions, regles, notes, lexique, armurerie, table (MJ)
 js/modules/fiche/        fiche : sheet.js (affichage), print.js (impression), corps.js (pantin du Sorcier), index.js (page)
 supabase/schema.sql      tables, règles d'accès, rôle MJ, armurerie (achat sécurisé), notes, grimoire, maintien en éveil
 vendor/                  bibliothèque Supabase (version figée, pas de dépendance à un CDN)
 ```
 
-### Ajouter une section (Factions, Centre de formation…)
+### Ajouter un codex (une page sur le modèle du Grimoire et des Factions)
+Copier `js/shared/factions.js` (canevas) et `js/modules/factions.js` (textes, en-tête), puis dans `supabase/schema.sql` copier le bloc « Factions » (trois tables et le déclencheur `codex_publier`, dont la liste des sections doit reprendre celle du canevas).
+
+### Ajouter une section (Centre de formation…)
 1. Créer `js/modules/formation.js` sur le modèle de `accueil.js` (ou de `armurerie.js` pour un exemple complet) : un objet `{ id, titre, acces, nav, carte, mount(el, ctx) }` (le contrat complet est décrit en tête de `js/core/router.js`).
 2. Dans `js/modules/index.js`, l'importer et remplacer la ligne « bientôt » correspondante.
 3. Pour lire ou modifier le personnage du joueur : `personnage.charger()` puis `personnage.modifie(data)` (voir `js/shared/personnage.js`). Les règles communes sont dans `js/shared/regles.js`.

@@ -390,6 +390,112 @@ create policy "observations : proposer" on public.grimoire_observations
 create policy "observations : retirer" on public.grimoire_observations
   for delete using (owner = auth.uid() or public.is_mj());
 
+-- ---------- Publication générique des « codex » (Factions, et les suivants) ----------
+-- Déclencheur paramétré : codex_publier('<table publique>', '<sections>', '<clés d’en-tête>')
+-- sections : [[id, est_mj, [champs…]], …] dans l'ordre d'affichage (miroir du fichier js/shared/<codex>.js)
+create or replace function public.codex_publier()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  cible text := tg_argv[0];
+  sections jsonb := tg_argv[1]::jsonb;
+  meta jsonb := tg_argv[2]::jsonb;
+  s jsonb; sid text; est_mj boolean; visible boolean; f text;
+  e jsonb; p jsonb; vis jsonb; tete jsonb := '{}'::jsonb;
+  sj jsonb := '[]'::jsonb; sm jsonb := '[]'::jsonb; j jsonb := '{}'::jsonb; m jsonb := '{}'::jsonb;
+begin
+  if tg_op = 'DELETE' then
+    execute format('delete from public.%I where id = $1', cible) using old.id; return old;
+  end if;
+  if tg_op = 'UPDATE' and old.id <> new.id then
+    execute format('delete from public.%I where id = $1', cible) using old.id;
+  end if;
+  if not new.publie then
+    execute format('delete from public.%I where id = $1', cible) using new.id; return new;
+  end if;
+  e := coalesce(new.entree, '{}'::jsonb); p := coalesce(new.profil, '{}'::jsonb);
+  vis := case when jsonb_typeof(e->'vis') = 'object' then e->'vis' else '{}'::jsonb end;
+  for s in select * from jsonb_array_elements(sections) loop
+    sid := s->>0; est_mj := (s->>1)::boolean;
+    visible := case when jsonb_typeof(vis->sid) = 'boolean' then (vis->>sid)::boolean else not est_mj end;
+    continue when not visible;
+    for f in select * from jsonb_array_elements_text(s->2) loop
+      if est_mj then
+        if p ? f then m := m || jsonb_build_object(f, p->f); end if;
+      elsif e ? f then j := j || jsonb_build_object(f, e->f);
+      end if;
+    end loop;
+    if est_mj then sm := sm || to_jsonb(sid); else sj := sj || to_jsonb(sid); end if;
+  end loop;
+  for f in select * from jsonb_array_elements_text(meta) loop
+    tete := tete || jsonb_build_object(f, coalesce(e->f, '""'::jsonb));
+  end loop;
+  execute format('insert into public.%I (id, numero, data, updated_at) values ($1, $2, $3, now())
+                  on conflict (id) do update set numero = excluded.numero, data = excluded.data, updated_at = now()', cible)
+    using new.id, new.numero, tete || jsonb_build_object('id', new.id, 'numero', new.numero, 'secJ', sj, 'secM', sm, 'j', j, 'm', m);
+  return new;
+end $$;
+
+-- ---------- Factions ----------
+-- Même principe que le Grimoire : factions (MJ seulement), factions_public (version joueurs
+-- calculée par la base), factions_observations (proposées par les joueurs).
+create table if not exists public.factions (
+  id          text primary key default replace(gen_random_uuid()::text, '-', ''),
+  numero      int,
+  publie      boolean not null default false,
+  entree      jsonb not null default '{}'::jsonb,
+  profil      jsonb not null default '{}'::jsonb,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+drop trigger if exists factions_touch on public.factions;
+create trigger factions_touch before update on public.factions
+  for each row execute function public.touch_updated_at();
+alter table public.factions enable row level security;
+drop policy if exists "factions : MJ" on public.factions;
+create policy "factions : MJ" on public.factions
+  for all using (public.is_mj()) with check (public.is_mj());
+
+create table if not exists public.factions_public (
+  id          text primary key,
+  numero      int,
+  data        jsonb not null,
+  updated_at  timestamptz not null default now()
+);
+alter table public.factions_public enable row level security;
+drop policy if exists "factions public : lire" on public.factions_public;
+create policy "factions public : lire" on public.factions_public for select using (true);
+
+drop trigger if exists factions_sync on public.factions;
+create trigger factions_sync after insert or update or delete on public.factions
+  for each row execute function public.codex_publier('factions_public',
+  '[["presentation",false,["presentation","devise"]],["brume",false,["savoir","brume"]],["equilibre",false,["defendent","bascule"]],
+    ["territoire",false,["zone","repaires"]],["membres",false,["membres"]],["magie",false,["pratiques","magie"]],["signes",false,["signes"]],
+    ["services",false,["services"]],["rumeurs",false,["rumeurs"]],["historique",false,["historique"]],
+    ["objectifs",true,["objectifs"]],["organisation",true,["chef","effectifs","hierarchie"]],["ressources",true,["ressources"]],
+    ["plans",true,["plans"]],["entites",true,["entites"]],["relations",true,["relations"]],["accroches",true,["accroches"]],["secrets",true,["secrets"]]]',
+  '["nom","autresNoms","nature","type","typeAutre","rapport","connaissance","entente","embleme","maj"]');
+update public.factions set publie = publie;
+
+create table if not exists public.factions_observations (
+  id          uuid primary key default gen_random_uuid(),
+  entree_id   text not null references public.factions(id) on delete cascade,
+  owner       uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  perso       text not null default '',
+  date_obs    date,
+  texte       text not null check (length(trim(texte)) > 0),
+  created_at  timestamptz not null default now()
+);
+alter table public.factions_observations enable row level security;
+drop policy if exists "observations factions : lire"     on public.factions_observations;
+drop policy if exists "observations factions : proposer" on public.factions_observations;
+drop policy if exists "observations factions : retirer"  on public.factions_observations;
+create policy "observations factions : lire" on public.factions_observations
+  for select using (owner = auth.uid() or public.is_mj());
+create policy "observations factions : proposer" on public.factions_observations
+  for insert with check (owner = auth.uid() and exists (select 1 from public.factions_public f where f.id = entree_id));
+create policy "observations factions : retirer" on public.factions_observations
+  for delete using (owner = auth.uid() or public.is_mj());
+
 -- ---------- Maintien en éveil ----------
 -- Supabase met en pause un projet gratuit resté inactif une semaine.
 -- Le workflow GitHub .github/workflows/keepalive.yml appelle cette fonction tous les 2 jours.

@@ -10,6 +10,7 @@
    ===================================================================== */
 import accueil from './accueil.js';
 import grimoire from './grimoire.js';
+import factions from './factions.js';
 import fiche from './fiche/index.js';
 import table from './table.js';
 import armurerie from './armurerie.js';
@@ -20,8 +21,7 @@ import notes from './notes.js';
 export const MODULES = [
   accueil,
   grimoire,
-  // Section prévue, de même rang que le Grimoire : affichée « bientôt » sur la page d'accueil
-  { id: 'factions', bientot: true, carte: { titre: 'Factions', texte: 'Les groupes, ordres et cours qui croisent le chemin des Gris : alliés, rivaux, ennemis.' } },
+  factions,
   regles,
   fiche,
   notes,
