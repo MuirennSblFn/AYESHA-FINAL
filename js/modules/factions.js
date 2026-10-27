@@ -18,7 +18,7 @@ const rapport = e => e.rapport ? `<span class="rapport r-${esc(RAPPORTS.indexOf(
 const aEntente = e => e.entente !== '' && e.entente != null;
 
 /* Sceau de la page d'accueil des Factions : trois blasons liés */
-const SCEAU = `<svg class="big" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width=".8" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="14" stroke-dasharray="1.5 2.5"/><path d="M20 7 L26 9.5 V14 Q26 18 20 20 Q14 18 14 14 V9.5 Z"/><path d="M11 20 L17 22.5 V27 Q17 31 11 33 Q5 31 5 27 V22.5 Z" opacity=".7" transform="translate(2 -1)"/><path d="M29 20 L35 22.5 V27 Q35 31 29 33 Q23 31 23 27 V22.5 Z" opacity=".7" transform="translate(-2 -1)"/><circle cx="20" cy="13.5" r="1.6" fill="currentColor"/></svg>`;
+const SCEAU = `<svg class="big" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width=".8" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="15.6" stroke-dasharray="1.6 2.4" pathLength="100"/><path d="M20 7.5 L25 9.3 V13.6 Q25 17.4 20 19.4 Q15 17.4 15 13.6 V9.3 Z"/><path d="M13.2 20.2 L17.7 21.8 V25.4 Q17.7 28.8 13.2 30.6 Q8.7 28.8 8.7 25.4 V21.8 Z" opacity=".7"/><path d="M26.8 20.2 L31.3 21.8 V25.4 Q31.3 28.8 26.8 30.6 Q22.3 28.8 22.3 25.4 V21.8 Z" opacity=".7"/><circle cx="20" cy="13.4" r="1.5" fill="currentColor"/></svg>`;
 
 export default creerCodex({
   id: 'factions',

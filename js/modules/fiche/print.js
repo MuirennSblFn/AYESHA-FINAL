@@ -5,7 +5,7 @@ import { STATS, CLASSES, VOIE, CORPS, COUT, DIFF, CASES, ZONES_CORPS } from '../
 import { occupant, sacoche, reductionPortee, malusPorte } from '../../shared/equipement.js';
 import { int, compte, niveau, malusArmure, bonusDegats, maxEffectifs, statEff } from '../../shared/personnage.js';
 
-const SIG = '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="14" stroke-dasharray="1.5 2.5"/><path d="M20 5 L33 28 H7 Z"/><path d="M11 20 Q20 12 29 20 Q20 28 11 20 Z"/><circle cx="20" cy="20" r="2.6" fill="currentColor"/></svg>';
+const SIG = '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="15.6" stroke-dasharray="1.6 2.4" pathLength="100"/><path d="M20 7 L31.26 26.5 H8.74 Z"/><path d="M11.5 20 Q20 12.8 28.5 20 Q20 27.2 11.5 20 Z"/><circle cx="20" cy="20" r="2.6" fill="currentColor"/></svg>';
 
 export function ficheImprimable(C) {
   const count = v => compte(C, v);
