@@ -106,3 +106,6 @@
 .ps-sil .labels{display:none}
 .fichewrap .prep .tot select.in{width:auto;min-width:13.5em;font-size:.95rem;padding:3px 6px}
 @media (max-width:520px){.fichewrap .prep .tot{flex-wrap:wrap}.fichewrap .prep .tot select.in{min-width:0;width:100%}}
+.ps-etats{white-space:nowrap}
+.ps-etats .ps-box{margin-left:1mm}
+.ps-cote{font-size:7pt;margin:0 .5mm 0 1.5mm;color:#5b5569}

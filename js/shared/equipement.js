@@ -12,7 +12,7 @@
    occupant dans l'inventaire.
    ===================================================================== */
 
-import { PERTES } from './regles.js';
+import { PERTES , pertesActives } from './regles.js';
 
 const ent = v => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; };
 export const nouvelId = () => 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -39,9 +39,7 @@ const memeObjet = (a, b) => a.item && b.item ? a.item === b.item && a.nom === b.
 /* Cases rendues inutilisables par les pertes définitives du Sorcier : { case: 'Mains perdues', … } */
 export function casesBloquees(C) {
   const b = {};
-  Object.entries(C.corps || {}).forEach(([k, v]) => {
-    if (v && v.etat === 'def' && PERTES[k]?.bloque) PERTES[k].bloque.forEach(c => { if (!b[c]) b[c] = k; });
-  });
+  pertesActives(C.corps).forEach(p => (p.bloque || []).forEach(c => { if (!b[c]) b[c] = p.k; }));
   return b;
 }
 /* Peut-on équiper cet objet ? Renvoie '' si oui, sinon la raison */

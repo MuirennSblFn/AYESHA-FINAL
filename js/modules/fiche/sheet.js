@@ -13,7 +13,7 @@
 import { $, $$, esc, toast, modal, confirmer, copyText } from '../../core/ui.js';
 import { lexique, chercher } from '../../shared/lexique.js';
 import { silhouetteSVG, infoZoneDe } from './corps.js';
-import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6, EMPLACEMENTS, EMPL_PAR_TYPE, CASES, TYPES_OBJET, CATEGORIES_MOT, GRAMMAIRE, incantation, ZONES_CORPS, PERTES, COUT_PV_SACRIFICE_TEMP, SEUILS_SORCIER } from '../../shared/regles.js';
+import { STATS, CLASSES, VOIE, CORPS, SAC, COUT, DIFF, DIFF_TXT, TALENTS, JAUGES, d6, EMPLACEMENTS, EMPL_PAR_TYPE, CASES, TYPES_OBJET, CATEGORIES_MOT, GRAMMAIRE, incantation, ZONES_CORPS, PERTES, PAIRES, COUT_PV_SACRIFICE_TEMP, SEUILS_SORCIER } from '../../shared/regles.js';
 import { occupant, sacoche, estEquipable, equiper, ranger, utiliser, reductionPortee, malusPorte, nouvelId, casesBloquees, refusEquiper, rangerBloques } from '../../shared/equipement.js';
 import { int, compte, niveau, malusArmure, bonusDegats, maxCalcules, maxEffectifs, actuel, formule, statEff, pertesCorps } from '../../shared/personnage.js';
 
@@ -291,7 +291,7 @@ export function creerFiche(root, C, { lectureSeule = false, onChange = () => {} 
     const etat = et === 'intact' ? 'Intact' : et === 'temp' ? 'Sacrifié temporairement' : 'Perdu définitivement';
     return `<div class="zd"><div class="zt"><span class="rn">${z.r}</span><b>${esc(z.n)}</b><span class="etat e-${et}">${etat}</span></div>
       <div class="zv"><span>Valeur <b>${tot}</b>${bonus ? ` <small>(dont +${bonus} de progression)</small>` : ''}</span><span>En temporaire <b>${tot / 2}</b></span>${reu ? '<span class="chip">réutilisable</span>' : ''}</div>
-      <div class="zc"><span class="lbl">SI PERDU DÉFINITIVEMENT</span>${esc(PERTES[z.k]?.t || '—')}</div>
+      <div class="zc"><span class="lbl">SI PERDU DÉFINITIVEMENT</span>${esc(PERTES[z.k]?.t || '—')}${PAIRES[z.base] ? `<br><small>Avec ${esc(PAIRES[z.base].t)}.</small>` : ''}</div>
       <div class="za">${prepa[z.k] ? `<button class="mini" data-prepa="${z.k}" data-mode="">Retirer du sacrifice</button>` : `${peutT ? `<button class="mini" data-prepa="${z.k}" data-mode="temp">Sacrifier (temporaire)</button>` : ''}${peutD ? `<button class="mini danger" data-prepa="${z.k}" data-mode="def">Sacrifier (définitif)</button>` : ''}`}
         ${et === 'temp' ? `<button class="mini" data-recup="${z.k}">Récupérer</button>` : ''}</div></div>`;
   }

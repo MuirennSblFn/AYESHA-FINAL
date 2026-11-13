@@ -26,25 +26,34 @@ function seg(x1, y1, x2, y2, a, b) {
   const P = (x, y, r, s) => `${r1(x + s * nx * r)} ${r1(y + s * ny * r)}`;
   return `<path d="M${P(x1, y1, a, 1)} L${P(x2, y2, b, 1)} A${b} ${b} 0 0 0 ${P(x2, y2, b, -1)} L${P(x1, y1, a, -1)} A${a} ${a} 0 0 0 ${P(x1, y1, a, 1)} Z"/>`;
 }
-const miroir = (f, ...a) => f(...a) + f(...a.map((v, i) => (i % 2 === 0 && i < 4 ? 300 - v : v)));
 
+/* Côté gauche du pantin = clé de base (I, II…), côté droit = clé + « b » (comme les yeux) */
+const sym = (f, ...a) => f(...a.map((v, i) => (i % 2 === 0 && i < 4 ? 300 - v : v)));
 const SIL = {
   XII: '<circle class="hit" cx="150" cy="84" r="31"/><circle class="ring" cx="150" cy="84" r="31"/>',
   VI: '<path d="M138.5 82 L143 79 L147.5 82 L143 85 Z"/>', VIb: '<path d="M152.5 82 L157 79 L161.5 82 L157 85 Z"/>',
-  VII: '<ellipse cx="131.5" cy="86" rx="3.6" ry="7"/><ellipse cx="168.5" cy="86" rx="3.6" ry="7"/>',
+  VII: '<ellipse cx="131.5" cy="86" rx="3.6" ry="7"/>', VIIb: '<ellipse cx="168.5" cy="86" rx="3.6" ry="7"/>',
   VIII: '<path d="M144 96.5 Q150 94 156 96.5 Q150 101 144 96.5 Z"/>',
-  III: miroir(seg, 117, 122, 80, 122, 6.5, 5.5) + miroir(seg, 72, 122, 45, 122, 5, 4),
-  II: '<path d="M38 115 Q26 113 21 118 L21 126 Q26 131 38 129 Z"/><path d="M262 115 Q274 113 279 118 L279 126 Q274 131 262 129 Z"/>',
-  I: '<path class="lines" d="M21 117 L11 111 M20 122 L8 122 M21 127 L11 133 M279 117 L289 111 M280 122 L292 122 M279 127 L289 133"/>',
+  III: seg(117, 122, 80, 122, 6.5, 5.5) + seg(72, 122, 45, 122, 5, 4),
+  IIIb: sym(seg, 117, 122, 80, 122, 6.5, 5.5) + sym(seg, 72, 122, 45, 122, 5, 4),
+  II: '<path d="M38 115 Q26 113 21 118 L21 126 Q26 131 38 129 Z"/>', IIb: '<path d="M262 115 Q274 113 279 118 L279 126 Q274 131 262 129 Z"/>',
+  I: '<path class="hit" d="M21 117 L11 111 M20 122 L8 122 M21 127 L11 133"/><path class="lines" d="M21 117 L11 111 M20 122 L8 122 M21 127 L11 133"/>',
+  Ib: '<path class="hit" d="M279 117 L289 111 M280 122 L292 122 M279 127 L289 133"/><path class="lines" d="M279 117 L289 111 M280 122 L292 122 M279 127 L289 133"/>',
   XI: '<path d="M161 160 C153 154 151 147 155 144.5 C157.5 143.2 160.4 144.6 161 147.2 C161.6 144.6 164.5 143.2 167 144.5 C171 147 169 154 161 160 Z"/>',
   XIII: '<path class="ame" d="M150 158 L154 167 L163 171 L154 175 L150 184 L146 175 L137 171 L146 167 Z"/>',
-  X: '<ellipse cx="141" cy="190" rx="4.6" ry="7.5"/><ellipse cx="159" cy="190" rx="4.6" ry="7.5"/>',
+  X: '<ellipse cx="141" cy="190" rx="4.6" ry="7.5"/>', Xb: '<ellipse cx="159" cy="190" rx="4.6" ry="7.5"/>',
   IX: '<path d="M144 213 L156 213 L150 224 Z"/>',
-  V: miroir(seg, 138, 238, 128, 316, 8, 6.5) + miroir(seg, 126, 326, 117, 398, 6, 4.5),
-  IV: '<path d="M118 404 Q118 412 112 414 L96 416 Q92 410 99 407 Z"/><path d="M182 404 Q182 412 188 414 L204 416 Q208 410 201 407 Z"/>',
+  V: seg(138, 238, 128, 316, 8, 6.5) + seg(126, 326, 117, 398, 6, 4.5),
+  Vb: sym(seg, 138, 238, 128, 316, 8, 6.5) + sym(seg, 126, 326, 117, 398, 6, 4.5),
+  IV: '<path d="M118 404 Q118 412 112 414 L96 416 Q92 410 99 407 Z"/>', IVb: '<path d="M182 404 Q182 412 188 414 L204 416 Q208 410 201 407 Z"/>',
 };
 /* Position de la valeur affichée près de chaque zone */
-const ETIQ = { XII: [104, 62], VI: [116, 76], VIb: [184, 76], VII: [118, 104], VIII: [184, 102], III: [98, 107], II: [30, 144], I: [12, 101], XI: [184, 152], XIII: [150, 171], X: [121, 191], IX: [170, 220], V: [106, 292], IV: [86, 432] };
+const ETIQ = {
+  XII: [104, 62], VI: [116, 76], VIb: [184, 76], VII: [118, 102], VIIb: [182, 102], VIII: [150, 112],
+  III: [98, 107], IIIb: [202, 107], II: [30, 144], IIb: [270, 144], I: [12, 101], Ib: [288, 101],
+  XI: [184, 152], XIII: [150, 171], X: [121, 191], Xb: [179, 191], IX: [170, 220],
+  V: [106, 292], Vb: [194, 292], IV: [86, 432], IVb: [214, 432],
+};
 
 /* Décor : arche ogivale, cercle de Vitruve, croix de marionnettiste et fils */
 const DECOR = `<g class="decor" aria-hidden="true">

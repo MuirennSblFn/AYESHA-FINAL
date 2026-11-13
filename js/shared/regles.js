@@ -120,42 +120,75 @@ export function incantation(suite) {
    Les deux yeux sont deux zones distinctes ; les bonus de progression visant
    « VI · Œil » s'appliquent aux deux. */
 export const ZONES_CORPS = [
-  { k: 'I', r: 'I', n: 'Doigts', pts: 2 },
-  { k: 'II', r: 'II', n: 'Mains', pts: 4 },
-  { k: 'III', r: 'III', n: 'Bras', pts: 6 },
-  { k: 'IV', r: 'IV', n: 'Pieds', pts: 4 },
-  { k: 'V', r: 'V', n: 'Jambes', pts: 6 },
+  { k: 'I', r: 'I', n: 'Doigts (main gauche)', pts: 2, base: 'I' },
+  { k: 'Ib', r: 'I', n: 'Doigts (main droite)', pts: 2, base: 'I' },
+  { k: 'II', r: 'II', n: 'Main gauche', pts: 4, base: 'II' },
+  { k: 'IIb', r: 'II', n: 'Main droite', pts: 4, base: 'II' },
+  { k: 'III', r: 'III', n: 'Bras gauche', pts: 6, base: 'III' },
+  { k: 'IIIb', r: 'III', n: 'Bras droit', pts: 6, base: 'III' },
+  { k: 'IV', r: 'IV', n: 'Pied gauche', pts: 4, base: 'IV' },
+  { k: 'IVb', r: 'IV', n: 'Pied droit', pts: 4, base: 'IV' },
+  { k: 'V', r: 'V', n: 'Jambe gauche', pts: 6, base: 'V' },
+  { k: 'Vb', r: 'V', n: 'Jambe droite', pts: 6, base: 'V' },
   { k: 'VI', r: 'VI', n: 'Œil gauche', pts: 6, base: 'VI' },
   { k: 'VIb', r: 'VI', n: 'Œil droit', pts: 6, base: 'VI' },
-  { k: 'VII', r: 'VII', n: 'Oreilles', pts: 6 },
+  { k: 'VII', r: 'VII', n: 'Oreille gauche', pts: 6, base: 'VII' },
+  { k: 'VIIb', r: 'VII', n: 'Oreille droite', pts: 6, base: 'VII' },
   { k: 'VIII', r: 'VIII', n: 'Langue', pts: 5 },
   { k: 'IX', r: 'IX', n: 'Sexe', pts: 10 },
-  { k: 'X', r: 'X', n: 'Reins', pts: 10 },
+  { k: 'X', r: 'X', n: 'Rein gauche', pts: 10, base: 'X' },
+  { k: 'Xb', r: 'X', n: 'Rein droit', pts: 10, base: 'X' },
   { k: 'XI', r: 'XI', n: 'Cœur', pts: 12 },
   { k: 'XII', r: 'XII', n: 'Souvenirs', pts: 6 },
   { k: 'XIII', r: 'XIII', n: 'Âme', pts: 12 },
 ];
 ZONES_CORPS.forEach(z => { if (!z.base) z.base = z.k; });
+/* Parties allant par paires (gauche = clé de base, droite = clé + « b ») */
+export const ZONES_PAIRES = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'X'];
 
 /* Conséquences d'une perte DÉFINITIVE (appliquées automatiquement par la fiche).
    stats : malus sur les caractéristiques ; pv / sm : malus sur les maximums ;
-   bloque : cases d'équipement inutilisables. À ajuster librement. */
+   bloque : cases d'équipement inutilisables.
+   PAIRES : effet supplémentaire quand les DEUX côtés sont perdus. À ajuster librement. */
+const cote = (g, d) => [[g, 'gauche'], [d, 'droite']];
 export const PERTES = {
-  I:    { t: 'DEX −10 : gestes fins difficiles', stats: { DEX: -10 } },
-  II:   { t: 'Plus aucune arme, bouclier ni gant ; DEX −20', stats: { DEX: -20 }, bloque: ['main_d', 'main_g', 'gants'] },
-  III:  { t: 'Plus aucune arme, bouclier ni gant ; FOR −20', stats: { FOR: -20 }, bloque: ['main_d', 'main_g', 'gants'] },
-  IV:   { t: 'DEX −10 ; plus de chaussures', stats: { DEX: -10 }, bloque: ['pieds'] },
-  V:    { t: 'DEX −20 ; se déplace très difficilement ; plus de chaussures', stats: { DEX: -20 }, bloque: ['pieds'] },
+  I:    { t: 'DEX −5 : gestes fins difficiles', stats: { DEX: -5 } },
+  Ib:   { t: 'DEX −5 : gestes fins difficiles', stats: { DEX: -5 } },
+  II:   { t: 'Main gauche : plus rien à tenir de ce côté ; DEX −10', stats: { DEX: -10 }, bloque: ['main_g'] },
+  IIb:  { t: 'Main droite : plus rien à tenir de ce côté ; DEX −10', stats: { DEX: -10 }, bloque: ['main_d'] },
+  III:  { t: 'Bras gauche : plus rien à tenir de ce côté ; FOR −10', stats: { FOR: -10 }, bloque: ['main_g'] },
+  IIIb: { t: 'Bras droit : plus rien à tenir de ce côté ; FOR −10', stats: { FOR: -10 }, bloque: ['main_d'] },
+  IV:   { t: 'DEX −5 : équilibre précaire', stats: { DEX: -5 } },
+  IVb:  { t: 'DEX −5 : équilibre précaire', stats: { DEX: -5 } },
+  V:    { t: 'DEX −10 : se déplace difficilement', stats: { DEX: -10 } },
+  Vb:   { t: 'DEX −10 : se déplace difficilement', stats: { DEX: -10 } },
   VI:   { t: 'PER −15 (les deux yeux : aveugle)', stats: { PER: -15 } },
   VIb:  { t: 'PER −15 (les deux yeux : aveugle)', stats: { PER: -15 } },
-  VII:  { t: 'PER −15 : sourd', stats: { PER: -15 } },
+  VII:  { t: 'PER −5 : ouïe diminuée', stats: { PER: -5 } },
+  VIIb: { t: 'PER −5 : ouïe diminuée', stats: { PER: -5 } },
   VIII: { t: 'Muet : CHA −20, ne peut plus parler', stats: { CHA: -20 } },
   IX:   { t: 'Pas d’effet de jeu (à l’appréciation du MJ)' },
-  X:    { t: 'PV maximum −3', pv: -3 },
+  X:    { t: 'PV maximum −2', pv: -2 },
+  Xb:   { t: 'PV maximum −2', pv: -2 },
   XI:   { t: 'PV maximum −5', pv: -5 },
   XII:  { t: 'INT −15 : des souvenirs sont effacés (le MJ précise lesquels)', stats: { INT: -15 } },
   XIII: { t: 'Santé mentale maximum −5', sm: -5 },
 };
+export const PAIRES = {
+  II:  { t: 'les deux mains : plus aucun gant', bloque: ['gants'] },
+  III: { t: 'les deux bras : plus aucun gant', bloque: ['gants'] },
+  IV:  { t: 'les deux pieds : plus de chaussures', bloque: ['pieds'] },
+  V:   { t: 'les deux jambes : plus de chaussures', bloque: ['pieds'] },
+  VII: { t: 'les deux oreilles : sourd (PER −5 de plus)', stats: { PER: -5 } },
+  X:   { t: 'les deux reins : PV maximum −2 de plus', pv: -2 },
+};
+/* Effets de perte d'une partie, y compris celui de la paire si l'autre côté est déjà perdu */
+export function pertesActives(corps) {
+  const def = k => corps && corps[k] && corps[k].etat === 'def';
+  const l = Object.keys(PERTES).filter(def).map(k => ({ k, ...PERTES[k] }));
+  Object.entries(PAIRES).forEach(([k, p]) => { if (def(k) && def(k + 'b')) l.push({ k, paire: true, ...p }); });
+  return l;
+}
 export const COUT_PV_SACRIFICE_TEMP = 2;
 /* Seuil du Sorcier selon l'ambition du sort (même échelle que la difficulté du Magicien).
    Le jet de 1d12 + sacrifices doit DÉPASSER ce seuil. Les PV dépensés en sacrifice reviennent à minuit. */

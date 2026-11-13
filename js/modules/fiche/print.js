@@ -28,13 +28,18 @@ export function ficheImprimable(C) {
         <p class="rule" style="font-style:normal">Déclarer l'action, sacrifier autant de points de magie ou de chance que de cartes à tirer, en garder une. Seuil fixé par le MJ, 20 au plus. Les cartes se renouvellent avec les points de magie.</p>
         <div class="lb" style="margin-top:2mm">CARTES PIOCHÉES</div>${Array.from({ length: 3 }, () => '<div class="blankline"></div>').join('')}</div>`;
     if (k === 'sorcier') {
-      const rows = ZONES_CORPS.map(z => {
-        const bonus = 2 * C.progression.filter(p => p.voie === 'partie' && p.cible === z.base).length; const tot = z.pts + bonus;
-        const et = (C.corps[z.k] && C.corps[z.k].etat) || 'intact'; const reu = C.progression.some(p => p.voie === 'reutil' && p.cible === z.base);
-        return `<tr><td class="rn">${z.r}</td><td>${z.n}${reu ? ' <small>(réutilisable)</small>' : ''}</td><td class="tn">${tot}${bonus ? ` <small>(+${bonus})</small>` : ''}</td><td class="tn">${tot / 2}</td><td><span class="ps-box ${et === 'temp' ? 'on' : ''}"></span>temp. <span class="ps-box ${et === 'def' ? 'on' : ''}" style="margin-left:3mm"></span>déf.</td></tr>`;
+      // Une ligne par partie de la planche ; les paires (gauche / droite) partagent la ligne
+      const etat = k => (C.corps[k] && C.corps[k].etat) || 'intact';
+      const cases = (k, cote) => `${cote ? `<b class="ps-cote">${cote}</b>` : ''}<span class="ps-box ${etat(k) === 'temp' ? 'on' : ''}"></span>t. <span class="ps-box ${etat(k) === 'def' ? 'on' : ''}"></span>d.`;
+      const rows = CORPS.map(([b, nom]) => {
+        const z = ZONES_CORPS.find(x => x.k === b);
+        const bonus = 2 * C.progression.filter(p => p.voie === 'partie' && p.cible === b).length; const tot = z.pts + bonus;
+        const reu = C.progression.some(p => p.voie === 'reutil' && p.cible === b);
+        const paire = ZONES_CORPS.some(x => x.k === b + 'b');
+        return `<tr><td class="rn">${b}</td><td>${nom}${reu ? ' <small>(réutilisable)</small>' : ''}</td><td class="tn">${tot}${bonus ? ` <small>(+${bonus})</small>` : ''}</td><td class="tn">${tot / 2}</td><td class="ps-etats">${paire ? cases(b, 'G') + ' ' + cases(b + 'b', 'D') : cases(b, '')}</td></tr>`;
       }).join('');
       return `<div class="ps-cls"><div class="chips"><span>PV gagnés <b>+${3 * count('pv')}</b></span></div>
-        <div class="ps-sorc"><table class="ps-body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temp.</th><th>Sacrifice</th></tr></thead><tbody>${rows}</tbody></table>${silhouetteSVG(C, { impression: true })}</div>
+        <div class="ps-sorc"><table class="ps-body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temp.</th><th>Sacrifice (t. temporaire, d. définitif ; G / D)</th></tr></thead><tbody>${rows}</tbody></table>${silhouetteSVG(C, { impression: true })}</div>
         <p class="rule">1d12 + sacrifices pour dépasser le seuil de l’ambition : très vague 7, simple 10, précis 13, complexe 16, invocation 18, rituel 20. Temporaire : moitié des points, 2 PV. À minuit : parties temporaires et PV de sacrifice rendus.</p></div>`;
     }
     if (k === 'portesac') return `<div class="ps-cls"><div class="chips"><span>Duplication <b>${count('dupliquer') ? 'oui' : 'non'}</b></span><span>Tirages multiples <b>${count('tirages') ? 'oui' : 'non'}</b></span><span>Échanges <b>${count('echange')}</b></span></div>

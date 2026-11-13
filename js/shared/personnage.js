@@ -11,7 +11,7 @@
    ===================================================================== */
 import { sb } from '../core/supabase.js';
 import { auth } from '../core/auth.js';
-import { STATS, VOIE, PERTES } from './regles.js';
+import { STATS, VOIE, PERTES , pertesActives } from './regles.js';
 import { migrerEquipement, malusPorte } from './equipement.js';
 
 export const FORMAT = 'ayesha-fiche-v1';
@@ -40,6 +40,10 @@ export function normaliser(c) {
   ['stats', 'cur', 'corps', 'rolls', 'max'].forEach(k => o[k] = { ...b[k], ...(c[k] || {}) });
   ['talents', 'entente', 'possessions', 'progression', 'mots', 'sac'].forEach(k => { if (!Array.isArray(o[k])) o[k] = b[k]; });
   migrerEquipement(o);                       // anciennes listes armes / armures / objets → possessions
+  if (!o.corpsParCote) {                     // anciennes zones « Jambes », « Bras »… → un état par côté
+    ['I', 'II', 'III', 'IV', 'V', 'VII', 'X'].forEach(k => { if (o.corps[k] && !o.corps[k + 'b']) o.corps[k + 'b'] = { ...o.corps[k] }; });
+    o.corpsParCote = true;
+  }
   while (o.talents.length < 3) o.talents.push({ t: '', j: '' });
   while (o.entente.length < 5) o.entente.push({ nom: '', a: '', note: 6 });
   while (o.sac.length < 12) o.sac.push('');
@@ -51,9 +55,8 @@ export function normaliser(c) {
 /* Pertes définitives du Sorcier : malus cumulés sur les caractéristiques et les maximums */
 export function pertesCorps(C) {
   const r = { stats: {}, pv: 0, sm: 0, zones: [] };
-  Object.entries(C.corps || {}).forEach(([k, v]) => {
-    if (!v || v.etat !== 'def' || !PERTES[k]) return;
-    const p = PERTES[k]; r.zones.push(k);
+  pertesActives(C.corps).forEach(p => {
+    if (!p.paire) r.zones.push(p.k);
     Object.entries(p.stats || {}).forEach(([s, m]) => r.stats[s] = (r.stats[s] || 0) + m);
     r.pv += p.pv || 0; r.sm += p.sm || 0;
   });
