@@ -97,8 +97,8 @@ Supabase met en pause les projets gratuits inactifs pendant 7 jours. Le workflow
 **Sorcier** :
 - Un pantin articulé (bras en croix, sous une arche gothique) montre les 14 parties (dont les deux yeux) avec leur valeur et leur état : intacte, sacrifiée temporairement (valeur divisée par deux), perdue (✕).
 - Toucher une partie affiche sa valeur, son bonus de progression et la conséquence d'une perte définitive ; on peut la préparer pour un sacrifice (temporaire ou définitif).
-- La préparation additionne les sacrifices, et avec le seuil fixé par le MJ indique le résultat à faire au d12 et la probabilité de réussite (le jet reste aux dés physiques). « Sacrifier » applique les états et retire les PV : 2 par sacrifice temporaire, la valeur de la partie pour un sacrifice définitif (comme dans le guide).
-- « Minuit » récupère les parties sacrifiées temporairement et restaure les points de magie.
+- La préparation additionne les sacrifices ; on choisit l'ambition du sort (très vague 7, simple 10, précis 13, complexe 16, invocation longue 18, rituel exceptionnel 20) et la fiche indique le résultat à faire au d12 pour dépasser ce seuil, avec la probabilité de réussite (le jet reste aux dés physiques). L'échelle est dans `SEUILS_SORCIER` (js/shared/regles.js). « Sacrifier » applique les états et retire les PV : 2 par sacrifice temporaire, la valeur de la partie pour un sacrifice définitif (comme dans le guide).
+- « Minuit » récupère les parties sacrifiées temporairement, rend les PV dépensés en sacrifice (pas les blessures) et restaure les points de magie.
 - Les pertes définitives s'appliquent : malus de caractéristiques, PV ou SM maximum réduits, emplacements d'équipement inutilisables (l'équipement concerné est rangé). Les règles sont dans `PERTES` (js/shared/regles.js), modifiables.
 
 **Factions** (onglet *Factions*) : le registre des groupes qui croisent le chemin des Gris, sur le modèle du Grimoire (mêmes boutons, mêmes règles de visibilité, observations des joueurs).

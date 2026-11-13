@@ -157,3 +157,13 @@ export const PERTES = {
   XIII: { t: 'Santé mentale maximum −5', sm: -5 },
 };
 export const COUT_PV_SACRIFICE_TEMP = 2;
+/* Seuil du Sorcier selon l'ambition du sort (même échelle que la difficulté du Magicien).
+   Le jet de 1d12 + sacrifices doit DÉPASSER ce seuil. Les PV dépensés en sacrifice reviennent à minuit. */
+export const SEUILS_SORCIER = [
+  { v: 7, l: 'Très vague', d: 'la magie interprète largement' },
+  { v: 10, l: 'Simple', d: 'une action, un effet' },
+  { v: 13, l: 'Précis', d: 'action, effet et direction' },
+  { v: 16, l: 'Complexe', d: 'sort conditionné ou élaboré' },
+  { v: 18, l: 'Invocation longue', d: 'très précise' },
+  { v: 20, l: 'Rituel exceptionnel', d: 'prouesse magique' },
+];

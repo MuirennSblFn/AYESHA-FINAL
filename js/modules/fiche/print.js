@@ -35,7 +35,7 @@ export function ficheImprimable(C) {
       }).join('');
       return `<div class="ps-cls"><div class="chips"><span>PV gagnés <b>+${3 * count('pv')}</b></span></div>
         <div class="ps-sorc"><table class="ps-body"><thead><tr><th></th><th>Partie du corps</th><th>Points</th><th>Temp.</th><th>Sacrifice</th></tr></thead><tbody>${rows}</tbody></table>${silhouetteSVG(C, { impression: true })}</div>
-        <p class="rule">1d12 + sacrifices pour dépasser le seuil sur 20. Un sacrifice temporaire vaut la moitié des points et coûte 2 PV.</p></div>`;
+        <p class="rule">1d12 + sacrifices pour dépasser le seuil de l’ambition : très vague 7, simple 10, précis 13, complexe 16, invocation 18, rituel 20. Temporaire : moitié des points, 2 PV. À minuit : parties temporaires et PV de sacrifice rendus.</p></div>`;
     }
     if (k === 'portesac') return `<div class="ps-cls"><div class="chips"><span>Duplication <b>${count('dupliquer') ? 'oui' : 'non'}</b></span><span>Tirages multiples <b>${count('tirages') ? 'oui' : 'non'}</b></span><span>Échanges <b>${count('echange')}</b></span></div>
         <div class="ps-sac">${C.sac.map((v, i) => `<div><b>${i + 1}</b><span>${esc(v)}</span></div>`).join('')}</div>
